@@ -1,0 +1,82 @@
+.background
+{
+    background-color:#3A3B3C;
+}
+
+.titleheader
+{
+    font-family:Arial, Helvetica, sans-serif;
+    text-align:center;
+    color:#c7ae40
+}
+
+.titleborder
+{
+    border: 1px solid #c7ae40;
+}
+
+.ageform
+{
+    text-align:center;
+}
+
+.ageformbutton
+{
+    border-color: #c7ae40;
+    background-color:#3A3B3C;
+    cursor:pointer; font-size:x-large;
+    color:#c7ae40;
+    border:solid 3px; 
+    border-radius:15px;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+.loginform
+{
+    text-align:center;
+}
+
+.loginfield
+{
+    color:#C7AE40;
+    background-color:#3A3B3C;
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:x-large;
+    border:solid 3px;
+    border-radius:10px;
+}
+
+.formhr
+{
+    border:1px solid #C7AE40;
+}
+
+.loginsubmit
+{
+    border-color: #C7AE40;
+    background-color:#3A3B3C;
+    cursor:pointer;
+    font-size:x-large;
+    color:#C7AE40;
+    border:solid 3px;
+    border-radius:15px;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+a:link
+{
+    color:#C7AE40;
+    background-color:transparent;
+}
+
+a:hover
+{
+    color:#C7AE40;
+    background-color:transparent;
+}
+
+a:visited
+{
+    color:#C7AE40;
+    background-color:transparent;
+}

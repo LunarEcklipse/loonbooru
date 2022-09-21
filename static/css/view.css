@@ -1,0 +1,61 @@
+.background
+{
+    background-color: #3A3B3C;
+}
+
+.dispname
+{
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+    color: #C7AE40;
+}
+
+.lbreak
+{
+    border: 1px solid #C7AE40;
+}
+
+.mainimgholder
+{
+    margin:auto;
+    width:100%;
+}
+
+.mainimg
+{
+    display:block;
+    margin:auto;
+    max-width:100%;
+    max-height:1024px;
+}
+
+.fullimgbtndiv
+{
+    text-align:center;
+}
+
+.fullimgbtn
+{
+    display:inline-block;
+    border-color: #C7AE40;
+    background-color:#3A3B3C;
+    cursor:pointer;
+    font-size:x-large;
+    color:#C7AE40;
+    border:solid 3px;
+    border-radius:15px;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+.fullimgbtntext
+{
+    margin:auto;
+    padding:5px;
+    color: #C7AE40;
+}
+
+.abouttxt
+{
+    font-family: Arial, Helvetica, sans-serif;
+    color:#C7AE40; 
+}

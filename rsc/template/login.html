@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+    <head>
+        <title>{{SITE_NAME}} | Login</title>
+        <meta charset="utf-8">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    </head>
+    <body class="background">
+        <h2 class="titleheader">Log in to {{SITE_NAME}}</h2>
+        <h3 class="titleheader">{{LOGIN_MESSAGE|safe}}</h3>
+        <h3 class="titleheader">{{LOGIN_ERROR|safe}}</h3>
+        <form class="loginform" action="{{SITE_URL|safe}}/authenticate" method="post">
+            <input type="hidden" id="dest" name="dest" value={{DESTINATION}}>
+            <input type="hidden" id="page" name="page" value={{PAGE}}>
+            <input type="hidden" id="maxfiles" name="maxfiles" value={{MAXFILES}}>
+            <input type="hidden" id="tags" name="tags" value="{{SEARCHTAGS|safe}}">
+            <label class="titleheader" for="uname">Username</label>
+            <input class="loginfield" type="text" id="uname" name="uname">
+            <br>
+            <label class="titleheader" for="password">Password:</label>
+            <input class="loginfield" type="password" id="password" name="password">
+            <br>
+            <br>
+            <button class="loginsubmit" type="submit" formmethod="post">Submit</button>
+        </form>
+        <br>
+        <hr class="titleborder">
+        <h2 class="titleheader">Alternatively, you can continue as a Guest.</h2>
+        <h3 class="titleheader">Please note that by clicking on the link below, you agree that you are 18 or older.</h3>
+        <form class="ageform" action="{{SITE_URL|safe}}/agevalidate" method="post">
+            <input type="hidden" id="dest" name="dest" value={{DESTINATION}}>
+            <input type="hidden" id="page" name="page" value={{PAGE}}>
+            <input type="hidden" id="maxfiles" name="maxfiles" value={{MAXFILES}}>
+            <input type="hidden" id="tags" name="tags" value="{{SEARCHTAGS|safe}}">
+            <button class="ageformbutton" type="submit" formmethod="post">I am over 18 (Guest Login).</button>
+        </form>
+    </body>
+</html>

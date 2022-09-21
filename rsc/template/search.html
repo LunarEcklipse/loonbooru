@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
+        <title>{{SITE_NAME}} | Tag Search</title>
+    </head>
+    <body class="background">
+        <h1 class="hdrtext">Search by Tags</h1>
+        <form class="searchform" action="https://dev.lunarecklipse.ca/browse/1" method="get">
+            <input class="searchfield" type="text" id="tags" name="tags"><br>
+            <br>
+            <button class="searchsubmit" type="submit" formmethod="get">Submit</button>
+        </form>
+    </body>
+</html>

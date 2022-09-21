@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/view.css') }}">
+        <title>{{SITE_NAME}} | View | {{DISPLAY_NAME}}</title>
+    </head>
+    <body class="background">
+        <h1 class="dispname">{{DISPLAY_NAME}}</h1>
+        <hr class="lbreak">
+        <div class="mainimgholder">
+            <a href={{FILE_PATH}}><img class="mainimg" src={{FILE_PATH}}></a>
+        </div>
+        <br>
+        <div class="fullimgbtndiv">
+            <div onclick="location.href='{{FILE_PATH}}'" class="fullimgbtn">
+                <p class="fullimgbtntext">View Full Image</p>
+            </div>
+        </div>
+        <hr class="lbreak">
+        <p class="abouttxt"><i>{{DESCRIPTION}}</i></p>
+        <br>
+        <p class="abouttxt">Artist: {{ARTIST_NAME}}</p>
+        <p class="abouttxt">Rating: {{FILE_RATING}}</p>
+        <p class="abouttxt">Uploaded: {{UPLOAD_DATE}}</p>
+        <p class="abouttxt">Tags: {{TAG_LIST}}</p>
+        <br>
+        {{CHAR_LIST|safe}}
+        {{SPEC_LIST|safe}}
+        {{CAMPAIGN_LIST|safe}}
+        {{UNIVERSE_LIST|safe}}
+    </body>
+</html>

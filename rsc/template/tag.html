@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/tag.css') }}">
+        <title>{{SITE_NAME}} | Tag | {{PAGETAG}}</title>
+    </head>
+    <body class="background">
+        <h1 class="desctxt">{{TAGNAME}}</h1>
+        <div class="maindiv">
+            <p class="desctxt">{{DESCTEXT}}</p>
+        </div>
+    </body>
+</html>
