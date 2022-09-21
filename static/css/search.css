@@ -41,3 +41,33 @@
     border-radius:15px;
     font-family:Arial, Helvetica, sans-serif;
 }
+
+.headertxt
+{
+    font-family:Arial, Helvetica, sans-serif;
+    text-align:left;
+    color:#c7ae40;
+}
+
+.headertxt a:link
+{
+    color:#C7AE40;
+    background-color:transparent;
+}
+
+.headertxt a:hover
+{
+    color:#C7AE40;
+    background-color:transparent;
+}
+
+.headertxt a:visited
+{
+    color:#C7AE40;
+    background-color:transparent;
+}
+
+.headerborder
+{
+    border: 1px solid #c7ae40;
+}

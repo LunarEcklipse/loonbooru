@@ -1,4 +1,3 @@
-from curses import noecho
 import os
 import sys
 from flask import Flask, render_template, request, redirect, url_for, abort, flash, make_response, session, escape
@@ -300,7 +299,7 @@ def browse(page):
         loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=browse&page={page}&maxfiles={maxfiles}&tags={tags}\">Log Out.</a></p>" # TODO: Continue here to put this into the render template at the header!
     return render_template("browse.html", SITE_NAME=site_name, IMAGEPAGEINSERT=imginsert, NAVBUTTONINSERT=navinsert, LOGIN_INFO=loginstr)
 
-@app.route("/view/<page>") #TODO: FINISH ME
+@app.route("/view/<page>") #TODO: Add back button that leads to the browse page so that people who pass through age check can get back!
 def viewpage(page):
     arg = request.args.to_dict()
     maxfiles = "25"
@@ -433,8 +432,11 @@ def viewpage(page):
         uniprnt = uniprnt[:-1]
         uniprnt = uniprnt[:-1]
         uniprnt += "</p>"
-
-    return render_template("view.html", SITE_NAME=site_name, DESCRIPTION=file.Description, DISPLAY_NAME=file.DisplayName, FILE_PATH=f"{cdn_url}/full/{file.FileID}.{file.FileEXT}", ARTIST_NAME=artistprnt, FILE_RATING=file.FileRating, UPLOAD_DATE=file.UploadDatetime, TAG_LIST=tagprint, CHAR_LIST=charprnt, SPEC_LIST=specprnt, CAMPAIGN_LIST=campprnt, UNIVERSE_LIST=uniprnt)
+    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=browse&page={page}&maxfiles={maxfiles}&tags={tags}\">Log in.</a></p>"
+    if AuthenticateUserAuth(session) == True:
+        username = loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"])
+        loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=view&page={page}&maxfiles={maxfiles}&tags={tags}\">Log Out.</a></p>"
+    return render_template("view.html", SITE_NAME=site_name, DESCRIPTION=file.Description, DISPLAY_NAME=file.DisplayName, FILE_PATH=f"{cdn_url}/full/{file.FileID}.{file.FileEXT}", ARTIST_NAME=artistprnt, FILE_RATING=file.FileRating, UPLOAD_DATE=file.UploadDatetime, TAG_LIST=tagprint, CHAR_LIST=charprnt, SPEC_LIST=specprnt, CAMPAIGN_LIST=campprnt, UNIVERSE_LIST=uniprnt, LOGIN_INFO=loginstr)
 
 @app.route("/results/")
 def ResultsNoQuery():
@@ -480,7 +482,11 @@ def searchpage():
             return redirect(f"{site_url_name}/browse/{page}?maxfiles={str(maxfiles)}&tags={tags}")
     if ValidateAge(session) == False:
         return redirect(f"{site_url_name}/agecheck?dest=search&maxfiles={str(maxfiles)}&page={page}")
-    return render_template("search.html", SITE_NAME=site_name)
+    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=browse&page={page}&maxfiles={maxfiles}&tags={tags}\">Log in.</a></p>"
+    if AuthenticateUserAuth(session) == True:
+        username = loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"])
+        loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=search&page={page}&maxfiles={maxfiles}&tags={tags}\">Log Out.</a></p>"
+    return render_template("search.html", SITE_NAME=site_name, LOGIN_INFO=loginstr)
     
 def hash_string(inStr): # Creates a string hash for use
     hash_obj = hashlib.sha256(inStr.encode('utf-8'))
@@ -494,6 +500,8 @@ def validate_filename(filename):
 @app.route("/upload", methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
+        if AuthenticateUserAuth(session) == False:
+            abort(403) # This will work for now, but make a nicer looking version!
         if 'file' not in request.files:
             return redirect(request.url)
         file = request.files['file']
@@ -509,7 +517,10 @@ def upload_file():
             print("File saved successfully")
         return redirect(request.url)
     elif request.method == 'GET':
-        return render_template("upload.html")
+        if AuthenticateUserAuth(session) == True:
+            return render_template("upload.html")
+        return redirect(url_for("login")) # TODO: Pass through upload to this URL so that it automatically redirects back to upload after logging in.
+    abort(403)
 
 # LOGIN FAIL REASONS:
 # 0 = Incorrect username/password

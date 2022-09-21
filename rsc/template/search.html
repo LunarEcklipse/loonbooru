@@ -7,11 +7,15 @@
         <title>{{SITE_NAME}} | Tag Search</title>
     </head>
     <body class="background">
+        <header>
+            {{LOGIN_INFO|safe}}
+            <hr class="headerborder">
+        </header>
         <h1 class="hdrtext">Search by Tags</h1>
-        <form class="searchform" action="https://dev.lunarecklipse.ca/browse/1" method="get">
+        <form class="searchform" action="https://{{SITE_URL|safe}}/browse/1" method="get">
             <input class="searchfield" type="text" id="tags" name="tags"><br>
             <br>
-            <button class="searchsubmit" type="submit" formmethod="get">Submit</button>
+            <button class="searchsubmit" type="submit" formmethod="get">Search</button>
         </form>
     </body>
 </html>
