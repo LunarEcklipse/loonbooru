@@ -124,8 +124,8 @@ def ParseTags(inStr: str) -> list:
     tagls = []
     for i in ls:
         i = i.strip()
-        if re.search(r"kiryu cha+n", re.escape(i)) != None:
-            i = "jess"
+        # if re.search(r"kiryu cha+n", re.escape(i)) != None: # Umbreone exclusive feature... Shush.
+        #     i = "jess"
         if i != "":
             tagls.append(TagType(i))
     return tagls
