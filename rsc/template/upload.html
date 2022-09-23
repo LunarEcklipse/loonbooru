@@ -7,6 +7,45 @@
         <h1>Upload Test</h1>
         <form method="post" enctype="multipart/form-data">
             <input type="file" name="file">
+            <br>
+            <label for="filename">File Name:</label>
+            <input type="text" id="filename" name="filename">
+            <br>
+            <label for="filedesc">File Description:</label>
+            <textarea id="filedesc" name="filedesc" rows="4" cols="50"></textarea>
+            <br>
+            <label for="filerating">File Rating:</label>
+            <input type="radio" id="fileratingsafe" name="filerating" value="safe">
+            <label for="fileratingsafe">Safe</label>
+            <input type="radio" id="fileratingquestionable" name="filerating" value="questionable">
+            <label for="fileratingquestionable">Questionable</label>
+            <input type="radio" id="fileratingexplicit" name="filerating" value="explicit">
+            <label for="fileratingexplicit">Explicit</label>
+            <br>
+            <label for="fileflat">Flat:</label>
+            <input type="radio" id="fileflatyes" name="fileflat" value="flatyes">
+            <label for="fileflatyes">Yes</label>
+            <input type="radio" id="fileflatno" name="fileflat" value="flatno">
+            <label for="fileflatno">No</label>
+            <br>
+            <label for="artistlist">Artist List</label>
+            <textarea id="artistlist" name="artistlist" rows="4" cols="50">Separated&#013;by&#013;linebreaks&#013;(Enter)</textarea>
+            <br>
+            <label for="characterlist">Character List</label>
+            <textarea id="characterlist" name="characterlist" rows="4" cols="50">Character, Species, Campaign, Universe, Owner&#013;Character, Species, Campaign, Universe, Owner&#013;Separated, by, Linebreaks, (Enter), Like This</textarea>
+            <br>
+            <label for="specieslist">Species List</label>
+            <textarea id="specieslist" name="specieslist" rows="4" cols="50">Species, Universe&#013;Species, Universe&#013;Separated, by&#013;Linebreaks, (Enter)</textarea>
+            <br>
+            <label for="campaignlist">Campaign List</label>
+            <textarea id="campaignlist" name="campaignlist" rows="4" cols="50">Campaign, Universe, Owner&#013;Campaign, Universe, Owner&#013;Separated, by, Linebreaks (Enter)</textarea>
+            <br>
+            <label for="universelist">Universe List</label>
+            <textarea id="universelist" name="universelist" rows="4" cols="50">Universe, Owner&#013;Universe, Owner&#013;Separated, by&#013;Linebreaks, (Enter)</textarea>
+            <br>
+            <label for="tagslist">Tags List</label>
+            <textarea id="tagslist" name="tagslist" rows="4" cols="50">Tags&#013;Proper Case&#013;Separated&#013;By&#013;Linebreaks (Enter)</textarea>
+            <br>
             <input type="submit" value="Upload">
         </form>
     </body>

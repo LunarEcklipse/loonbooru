@@ -1,5 +1,7 @@
 import os
+from symbol import continue_stmt
 import sys
+import threading
 from flask import Flask, render_template, request, redirect, url_for, abort, flash, make_response, session, escape
 from werkzeug.utils import secure_filename
 import imghdr
@@ -10,6 +12,7 @@ import loonboorumysql
 import re
 import secrets
 import hashlib
+import shutil
 
 ### FLAGS ###
 
@@ -29,7 +32,9 @@ site_name = flags["site_name"]
 site_url_name = flags["site_url_name"]
 cdn_url = flags["cdn_url"]
 upload_directory = flags["upload_directory"]
+use_flat_tag = flags["useflat"] # Hi Umbreon
 upload_allowed_extensions = {'jpg', 'png', 'gif', 'jpeg'}
+
 
 app = Flask(__name__, template_folder=templatepath)
 app.config['MAX_CONTENT_LENGTH'] = (32 * 1000 * 1000 * 1000) # Uploads limited to 16 mb
@@ -497,6 +502,57 @@ def validate_filename(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in upload_allowed_extensions
 
+def ProcessImageForUse(filename): # Processes pngs, jpgs, and gifs. TODO: Add support for webp, tiff, raw, eps, and .bmp if possible.
+    filesavepath = f"{upload_directory}/../tempprocessed"
+    filenamefull = f"p_full_{filename}"
+    filename256 = f"p_256_{filename}"
+    filename128 = f"p_128_{filename}"
+    filename64 = f"p_64_{filename}"
+    size256 = 256, 256
+    size128 = 128, 128
+    size64 = 64, 64
+    fileext = os.path.splitext(filename)
+    if fileext[1] == ".png" or fileext[1] == ".jpg" or fileext[1] == ".jpeg":
+        shutil.copyfile(os.path.join(upload_directory, filename), os.path.join(filesavepath, filenamefull))
+        shutil.copyfile(os.path.join(upload_directory, filename), os.path.join(filesavepath, filename256))
+        im = Image.open(os.path.join(filesavepath, filename256))
+        im.thumbnail(size256, Image.ANTIALIAS)
+        im.save(os.path.join(filesavepath, filename256))
+        im.close()
+        shutil.copyfile(os.path.join(upload_directory, filename), os.path.join(filesavepath, filename128))
+        im = Image.open(os.path.join(filesavepath, filename128))
+        im.thumbnail(size128, Image.ANTIALIAS)
+        im.save(os.path.join(filesavepath, filename128))
+        im.close()
+        shutil.copyfile(os.path.join(upload_directory, filename), os.path.join(filesavepath, filename64))
+        im = Image.open(os.path.join(filesavepath, filename64))
+        im.thumbnail(size64, Image.ANTIALIAS)
+        im.save(os.path.join(filesavepath, filename64))
+        im.close()
+    elif fileext[1] == ".gif":
+        shutil.copyfile(os.path.join(upload_directory, filename), os.path.join(filesavepath, filenamefull))
+        im = Image.open(os.path.join(upload_directory, filename))
+        im.seek(0)
+        filename256parsed = os.path.splitext(filename256)
+        filename128parsed = os.path.splitext(filename128)
+        filename64parsed = os.path.splitext(filename64)
+        im.save(os.path.join(filesavepath, filename256parsed[0], ".png"))
+        im.save(os.path.join(filesavepath, filename128parsed[0], ".png"))
+        im.save(os.path.join(filesavepath, filename64parsed[0], ".png"))
+        im = Image.open(os.path.join(filesavepath, filename256parsed[0], ".png"))
+        im.thumbnail(size256, Image.ANTIALIAS)
+        im.save(os.path.join(filesavepath, filename256parsed[0], ".png"))
+        im.close()
+        im = Image.open(os.path.join(filesavepath, filename128parsed[0], ".png"))
+        im.thumbnail(size128, Image.ANTIALIAS)
+        im.save(os.path.join(filesavepath, filename128parsed[0], ".png"))
+        im.close()
+        im = Image.open(os.path.join(filesavepath, filename64parsed[0], ".png"))
+        im.thumbnail(size64, Image.ANTIALIAS)
+        im.save(os.path.join(filesavepath, filename64parsed[0], ".png"))
+        im.close()
+    return
+
 @app.route("/upload", methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
@@ -505,20 +561,140 @@ def upload_file():
         if 'file' not in request.files:
             return redirect(request.url)
         file = request.files['file']
-        filename = f"temp_{str(uuid.uuid4().hex)}_{secure_filename(file.filename)}"
         if file.filename == '':
             flash("No file was selected.")
             return redirect(request.url)
+        temp_uuid = str(uuid.uuid4().hex)
+        if file.filename == '':
+            flash("No file was selected.")
+            return redirect(request.url)
+        filename = f"temp_{temp_uuid}_{secure_filename(file.filename)}"
         if validate_filename(file.filename) == False:
             flash("The provided filetype is not allowed at the moment.")
             return redirect(request.url)
         if file and validate_filename(file.filename):
             file.save(os.path.join(upload_directory, filename))
-            print("File saved successfully")
-        return redirect(request.url)
+            imgprocessthread = threading.Thread(target=ProcessImageForUse, args=(filename))
+            imgprocessthread.start()
+            uploadinfo = request.form.to_dict()
+            file_displayname = uploadinfo["filename"]
+            file_description = uploadinfo["filedesc"]
+            file_rating = uploadinfo["filerating"]
+            if use_flat_tag:
+                file_flat = uploadinfo["fileflat"]
+            else:
+                file_flat = None
+            file_artistlist = []
+            if uploadinfo["artistlist"] != "" and uploadinfo["artistlist"] != None:
+                artistlstemp = uploadinfo["artistlist"].split("/n")
+                for i in artistlstemp:
+                    i.replace(",", "")
+                    i.replace(":", "")
+                    i = i.strip()
+                for i in artistlstemp:
+                    artistname = i
+                    if artistname == None or artistname == "":
+                        continue
+                    else:
+                        file_artistlist.append(artistname)
+            file_characterlist = []
+            if uploadinfo["characterlist"] != "" and uploadinfo["characterlist"] != None:
+                characterlstemp = uploadinfo["characterlist"].split("/n")
+                for i in characterlstemp:
+                    brokencharls = i.split(",")
+                    for j in brokencharls:
+                        j.replace(":", "")
+                        j.replace(",", "")
+                        j.strip()
+                    try:
+                        charactername = brokencharls[0]
+                        characterspecies = brokencharls[1]
+                        charactercampaign = brokencharls[2]
+                        characteruniverse = brokencharls[3]
+                        characterowner = brokencharls[4]
+                        file_characterlist.append({"Name": charactername,
+                        "Species": characterspecies,
+                        "Campaign": charactercampaign,
+                        "Universe": characteruniverse,
+                        "Owner": characterowner})
+                    except IndexError as exception:
+                        continue
+            file_specieslist = []
+            if uploadinfo["specieslist"] != "" and uploadinfo["specieslist"] != None:
+                specieslstemp = uploadinfo["specieslist"].split("/n")
+                for i in specieslstemp:
+                    brokenspecls = i.split(",")
+                    for j in brokenspecls:
+                        j.replace(":", "")
+                        j.replace(",", "")
+                        j.strip()
+                    try:
+                        speciesname = brokenspecls[0]
+                        speciesuniverse = brokenspecls[1]
+                        file_specieslist.append({"Name": speciesname, "Universe": speciesuniverse})
+                    except IndexError as exception:
+                        continue
+            file_campaignlist = []
+            if uploadinfo["campaignlist"] != "" and uploadinfo["campaignlist"] != None:
+                campaignlstemp = uploadinfo["campaignlist"].split("/n")
+                for i in campaignlstemp:
+                    brokencmpls = i.split(",")
+                    for j in brokencmpls:
+                        j.replace(":", "")
+                        j.replace(",", "")
+                        j.strip()
+                    try:
+                        campaignname = brokencmpls[0]
+                        campaignuniverse = brokencmpls[1]
+                        campaignowner = brokencmpls[2]
+                        file_campaignlist.append({
+                            "Name": campaignname,
+                            "Universe": campaignuniverse,
+                            "Owner": campaignowner})
+                    except IndexError as exception:
+                        continue
+            file_universelist = []
+            if uploadinfo["universelist"] != "" and uploadinfo["universelist"] != None:
+                universelstemp = uploadinfo["universelist"].split("/n")
+                for i in universelstemp:
+                    brokenunils = i.split(",")
+                    for j in brokenunils:
+                        j.replace(":", "")
+                        j.replace(",", "")
+                        j.strip()
+                    try:
+                        universename = brokenunils[0]
+                        universeowner = brokenunils[1]
+                        file_universelist.append({"Name": universename, "Owner": universeowner})
+                    except IndexError as exception:
+                        continue
+            file_tagslist = []
+            if uploadinfo["tagslist"] != "" and uploadinfo["tagslist"] != None:
+                tagslstemp = uploadinfo["tagslist"].split("/n")
+                for i in tagslstemp:
+                    j.replace(":", "")
+                    j.replace(",", "")
+                    j.strip()
+                    file_tagslist.append(i)
+            paramdict = {
+                "Filename": filename,
+                "Display_Name": file_displayname,
+                "Description": file_description,
+                "Rating": file_rating,
+                "Flat": file_flat,
+                "Artist_List": file_artistlist,
+                "Character_List": file_characterlist,
+                "Species_List": file_specieslist,
+                "Universe_List": file_universelist,
+                "Tags_List": file_tagslist
+            }
+            rawtofile = json.dumps(paramdict)
+            with open(os.path.join(upload_directory, "..", "params", filename, ".json"), 'w', encoding="utf-8") as paramfile:
+                paramfile.write(rawtofile)
+        return redirect(request.url) # TODO: Continue here, make this so that it confirms the upload and tries to set up a link to the new page when it's ready. Also, send off a threaded function which sets all of the data up before this.
     elif request.method == 'GET':
         if AuthenticateUserAuth(session) == True:
-            return render_template("upload.html")
+            return render_template("upload.html", AUTH_TOKEN=session['auth_token'])
         return redirect(url_for("login")) # TODO: Pass through upload to this URL so that it automatically redirects back to upload after logging in.
     abort(403)
 
