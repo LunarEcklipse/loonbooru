@@ -7,6 +7,9 @@ class TagBasic(): #TODO: Finish me!
         self.TagNameProper = tagnameproper
         pass
 
+    def __eq__(self, other):
+        return (self.TagID == other.TagID)
+
 class Artist():
     def __init__(self, artist_id: str, user_id: str, artist_name: str, artist_name_proper: str):
         self.ArtistID = artist_id
@@ -14,6 +17,9 @@ class Artist():
         self.ArtistName = artist_name
         self.ArtistNameProper = artist_name_proper
         return
+    
+    def __eq__(self, other):
+        return (self.ArtistID == other.ArtistID)
 
 class Character():
     def __init__(self, character_id: str, character_name: str, character_name_proper: str, character_species: list, character_alias: list, character_owner: list):
@@ -23,6 +29,9 @@ class Character():
         self.CharacterSpecies = character_species
         self.CharacterOwner = character_owner
         return
+    
+    def __eq__(self, other):
+        return (self.CharacterID == other.CharacterID)
 
 class Species():
     def __init__(self, species_id: str, species_name: str, species_name_proper: str, species_universe: list):
@@ -33,7 +42,7 @@ class Species():
         return
     
     def __eq__(self, other):
-        return (self.SpeciesID == other.SpeciesID and self.SpeciesName == other.SpeciesName and self.SpeciesNameProper == other.SpeciesNameProper)
+        return (self.SpeciesID == other.SpeciesID)
 
 class Universe():
     def __init__(self, universe_id: str, universe_name: str, universe_name_proper: str, universe_owner: list):
@@ -42,6 +51,9 @@ class Universe():
         self.UniverseNameProper = universe_name_proper
         self.UniverseOwner = universe_owner
         return
+
+    def __eq__(self, other):
+        return (self.UniverseID == other.UniverseID)
 
 class User():
     def __init__(self, user_id: str, username: str, username_proper: str, join_datetime: datetime):
@@ -54,6 +66,9 @@ class User():
             self.JoinDatetime = None
         return
 
+    def __eq__(self, other):
+        return (self.UserID == other.UserID)
+
 class Campaign():
     def __init__(self, campaign_id: str, campaign_name: str, campaign_name_proper: str, campaign_owner: list):
         self.CampaignID = campaign_id
@@ -61,6 +76,9 @@ class Campaign():
         self.CampaignNameProper = campaign_name_proper
         self.CampaignOwner = campaign_owner
         return
+
+    def __eq__(self, other):
+        return (self.CampaignID == other.CampaignID)
 
 class FileBasic(): # FileBasic only contains the information needed to display the file on a browse page. FileDetail contains more information.
     def __init__(self, file_id: str, file_ext: str, upload_datetime: datetime, file_rating: str, display_browse: int, display_search: int):

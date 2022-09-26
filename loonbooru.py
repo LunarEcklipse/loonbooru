@@ -13,6 +13,8 @@ import re
 import secrets
 import hashlib
 import shutil
+import booruobj
+from datetime import datetime
 
 ### FLAGS ###
 
@@ -204,8 +206,8 @@ def pageredirect():
         tags = arg["tags"]
     if ValidateAge(session) == False:
         return redirect(f"{site_url_name}/agecheck?dest={dest}&page={page}&maxfiles={maxfiles}&browsetype={browsetype}&browsepage={browsepage}&tags={tags}", 302)
-    if dest == "taglist":
-        return redirect(f"{site_url_name}/taglist")
+    if dest == "upload":
+        return redirect(f"{site_url_name}/upload")
     elif dest == "view":
         return redirect(f"{site_url_name}/view/{page}?maxfiles={maxfiles}&browsetype={browsetype}&browsepage={browsepage}&tags={tags}")
     return redirect(f"{site_url_name}/{dest}/{page}?maxfiles={maxfiles}&tags={tags}")
@@ -503,6 +505,7 @@ def validate_filename(filename):
         filename.rsplit('.', 1)[1].lower() in upload_allowed_extensions
 
 def ProcessImageForUse(filename): # Processes pngs, jpgs, and gifs. TODO: Add support for webp, tiff, raw, eps, and .bmp if possible.
+    filename = filename.lower()
     filesavepath = f"{upload_directory}/../tempprocessed"
     filenamefull = f"p_full_{filename}"
     filename256 = f"p_256_{filename}"
@@ -553,32 +556,79 @@ def ProcessImageForUse(filename): # Processes pngs, jpgs, and gifs. TODO: Add su
         im.close()
     return
 
+def ProcessFileIntoDatabase(file_uuid: str, file_processing_thread: threading.Thread, paramfilepath: str): # What the fuck is wrong with you
+    if file_processing_thread != None:
+        file_processing_thread.join() # Wait for the file processing thread to complete, as long as one actually got passed through that is. The image shit takes a while.
+    file = None
+    try:
+        file = open(paramfilepath, 'r', encoding="utf-8")
+    except FileNotFoundError as exception:
+        with open(os.path.join(upload_directory, "..", "params", f"error_params_{file_uuid}.txt", 'w', encoding="utf-8")) as errfile:
+            errfile.write(f"ERROR: Params file not found for file UUID: \"{file_uuid}\".")
+        return
+    filesavepath = f"{upload_directory}/../tempprocessed"
+    raw = file.read()
+    file.close()
+    fileparams = json.loads(raw)
+    del raw
+    fileext = os.path.splitext(fileparams["Full_Filename"])[1]
+    fileidalreadyexists = loonboorumysql.CheckIfFileUUIDExists(fileparams["New_File_ID"]) # A little contingency in the one in a bajillion chance this UUID is already occupied.
+    if fileidalreadyexists:
+        new_file_id = None
+        while fileidalreadyexists:
+            new_file_id = str(uuid.uuid4().hex)
+            fileidalreadyexists = loonboorumysql.CheckIfFileUUIDExists(new_file_id)
+        fileparams["New_File_ID"] = new_file_id
+    new_file_id = fileparams["New_File_ID"]
+    thumbfileext = fileext
+    if fileext == ".gif": # .gif thumbnails are .pngs, so convert them. Use this line if you convert additional thumbnails.
+        thumbfileext = ".png"
+    newfullfilepath = os.path.join(filestorepath, "full", f"{new_file_id}{fileext}")
+    new256filepath = os.path.join(filestorepath, "thumb", "256", f"{new_file_id}{thumbfileext}")
+    new128filepath = os.path.join(filestorepath, "thumb", "128", f"{new_file_id}{thumbfileext}")
+    new64filepath = os.path.join(filestorepath, "thumb", "64", f"{new_file_id}{thumbfileext}")
+    shutil.copyfile(os.path.join(filesavepath, fileparams["Full_Filename"]), newfullfilepath) # These copies can go through because the file will just be overwritten. #300IQCode
+    shutil.copyfile(os.path.join(filesavepath, fileparams["256_Filename"]), new256filepath)
+    shutil.copyfile(os.path.join(filesavepath, fileparams["128_Filename"]), new128filepath)
+    shutil.copyfile(os.path.join(filesavepath, fileparams["64_Filename"]), new64filepath)
+    fileext = fileext.replace(".", "")
+    loonboorumysql.InsertNewFileIntoDatabase(new_file_id, fileparams["Uploader_ID"], fileext, fileparams["Display_Name"], fileparams["Description"], fileparams["Rating"], None, fileparams["Artist_List"], fileparams["Character_List"], fileparams["Species_List"], fileparams["Campaign_List"], fileparams["Universe_List"], fileparams["Tags_List"])
+    return
+
 @app.route("/upload", methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         if AuthenticateUserAuth(session) == False:
             abort(403) # This will work for now, but make a nicer looking version!
         if 'file' not in request.files:
-            return redirect(request.url)
+            upload_flat = ""
+            if use_flat_tag == True:
+                upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
+            return render_template("upload.html", UPLOAD_STATUS="No file was selected.", FLAT_RADIO=upload_flat)
         file = request.files['file']
         if file.filename == '':
-            flash("No file was selected.")
-            return redirect(request.url)
+            upload_flat = ""
+            if use_flat_tag == True:
+                upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
+            return render_template("upload.html", UPLOAD_STATUS="No file was selected.", FLAT_RADIO=upload_flat)
         temp_uuid = str(uuid.uuid4().hex)
-        if file.filename == '':
-            flash("No file was selected.")
-            return redirect(request.url)
-        filename = f"temp_{temp_uuid}_{secure_filename(file.filename)}"
+        filename = f"temp_{temp_uuid}_{secure_filename(file.filename.lower())}"
         if validate_filename(file.filename) == False:
-            flash("The provided filetype is not allowed at the moment.")
-            return redirect(request.url)
+            upload_flat = ""
+            if use_flat_tag == True:
+                upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
+            return render_template("upload.html", UPLOAD_STATUS="The selected file format cannot be uploaded at the moment.", FLAT_RADIO=upload_flat)
         if file and validate_filename(file.filename):
             file.save(os.path.join(upload_directory, filename))
-            imgprocessthread = threading.Thread(target=ProcessImageForUse, args=(filename))
+            imgprocessthread = threading.Thread(target=ProcessImageForUse, args=(filename,))
             imgprocessthread.start()
             uploadinfo = request.form.to_dict()
             file_displayname = uploadinfo["filename"]
+            if file_displayname == None or file_displayname == "" or file_displayname.isspace() == True:
+                abort(422)
             file_description = uploadinfo["filedesc"]
+            if file_description == None or file_description == "" or file_description.isspace() == True:
+                file_description = None
             file_rating = uploadinfo["filerating"]
             if use_flat_tag:
                 file_flat = uploadinfo["fileflat"]
@@ -676,8 +726,21 @@ def upload_file():
                     j.replace(",", "")
                     j.strip()
                     file_tagslist.append(i)
+            filesavepath = f"{upload_directory}/../tempprocessed"
+            filenamefull = f"p_full_{filename}"
+            filename256 = f"p_256_{filename}"
+            filename128 = f"p_128_{filename}"
+            filename64 = f"p_64_{filename}"
             paramdict = {
+                "Uploader_Auth": session["auth_token"],
+                "Uploader_Auth_Time": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+                "Uploader_ID": loonboorumysql.FetchUserIDFromAuthToken(session['auth_token']),
+                "New_File_ID": temp_uuid,
                 "Filename": filename,
+                "Full_Filename": filenamefull,
+                "256_Filename": filename256,
+                "128_Filename": filename128,
+                "64_Filename": filename64,
                 "Display_Name": file_displayname,
                 "Description": file_description,
                 "Rating": file_rating,
@@ -689,13 +752,22 @@ def upload_file():
                 "Tags_List": file_tagslist
             }
             rawtofile = json.dumps(paramdict)
-            with open(os.path.join(upload_directory, "..", "params", filename, ".json"), 'w', encoding="utf-8") as paramfile:
+            paramfilepath = os.path.join(upload_directory, "..", "params", f"params_{temp_uuid}.json")
+            with open(paramfilepath, 'w', encoding="utf-8") as paramfile:
                 paramfile.write(rawtofile)
-        return redirect(request.url) # TODO: Continue here, make this so that it confirms the upload and tries to set up a link to the new page when it's ready. Also, send off a threaded function which sets all of the data up before this.
+            databaseprocessthread = threading.Thread(target=ProcessFileIntoDatabase, args=(temp_uuid, imgprocessthread, paramfilepath))
+            databaseprocessthread.start()
+        upload_flat = ""
+        if use_flat_tag == True:
+            upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
+        return render_template("upload.html", UPLOAD_STATUS="Upload success! The file is now being processed.", FLAT_RADIO=upload_flat)
     elif request.method == 'GET':
         if AuthenticateUserAuth(session) == True:
-            return render_template("upload.html", AUTH_TOKEN=session['auth_token'])
-        return redirect(url_for("login")) # TODO: Pass through upload to this URL so that it automatically redirects back to upload after logging in.
+            upload_flat = ""
+            if use_flat_tag == True:
+                upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
+            return render_template("upload.html", UPLOAD_STATUS="", FLAT_RADIO=upload_flat)
+        return redirect(f"{site_url_name}/login?dest=upload", 302) # TODO: Pass through upload to this URL so that it automatically redirects back to upload after logging in.
     abort(403)
 
 # LOGIN FAIL REASONS:

@@ -5,6 +5,7 @@
     </head>
     <body>
         <h1>Upload Test</h1>
+        <h2>{{UPLOAD_STATUS}}</h2>
         <form method="post" enctype="multipart/form-data">
             <input type="file" name="file">
             <br>
@@ -22,17 +23,12 @@
             <input type="radio" id="fileratingexplicit" name="filerating" value="explicit">
             <label for="fileratingexplicit">Explicit</label>
             <br>
-            <label for="fileflat">Flat:</label>
-            <input type="radio" id="fileflatyes" name="fileflat" value="flatyes">
-            <label for="fileflatyes">Yes</label>
-            <input type="radio" id="fileflatno" name="fileflat" value="flatno">
-            <label for="fileflatno">No</label>
-            <br>
+            {{FLAT_RADIO|safe}}
             <label for="artistlist">Artist List</label>
             <textarea id="artistlist" name="artistlist" rows="4" cols="50">Separated&#013;by&#013;linebreaks&#013;(Enter)</textarea>
             <br>
             <label for="characterlist">Character List</label>
-            <textarea id="characterlist" name="characterlist" rows="4" cols="50">Character, Species, Campaign, Universe, Owner&#013;Character, Species, Campaign, Universe, Owner&#013;Separated, by, Linebreaks, (Enter), Like This</textarea>
+            <textarea id="characterlist" name="characterlist" rows="4" cols="50">Character, Species, Campaign,  Owner&#013;Character, Species, Campaign, Owner&#013;Separated, by, Linebreaks, (Enter)</textarea>
             <br>
             <label for="specieslist">Species List</label>
             <textarea id="specieslist" name="specieslist" rows="4" cols="50">Species, Universe&#013;Species, Universe&#013;Separated, by&#013;Linebreaks, (Enter)</textarea>
