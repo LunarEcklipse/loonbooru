@@ -35,7 +35,27 @@ cdn_url = flags["cdn_url"]
 upload_directory = flags["upload_directory"]
 use_flat_tag = flags["useflat"] # Hi Umbreon
 upload_allowed_extensions = {'jpg', 'png', 'gif', 'jpeg'}
+filesavepath = f"{upload_directory}/../tempprocessed"
+fileparampath = f"{upload_directory}/../params"
 
+deadprocessingfilelist = [f for f in os.listdir(filesavepath) if os.path.isfile(os.path.join(filesavepath, f))] # TODO: This is super lazy and could be condensed a lot better. Also likely to become unused later on.
+for i in deadprocessingfilelist:
+    try:
+        os.remove(os.path.join(filesavepath, i))
+    except FileNotFoundError as exception:
+        pass
+deadprocessingfilelist = [f for f in os.listdir(fileparampath) if os.path.isfile(os.path.join(fileparampath, f))]
+for i in deadprocessingfilelist:
+    try:
+        os.remove(os.path.join(fileparampath, i))
+    except FileNotFoundError as exception:
+        pass
+deadprocessingfilelist = [f for f in os.listdir(upload_directory) if os.path.isfile(os.path.join(upload_directory, f))]
+for i in deadprocessingfilelist:
+    try:
+        os.remove(os.path.join(upload_directory, i))
+    except FileNotFoundError as exception:
+        pass
 
 app = Flask(__name__, template_folder=templatepath)
 app.config['MAX_CONTENT_LENGTH'] = (32 * 1000 * 1000 * 1000) # Uploads limited to 16 mb
@@ -82,6 +102,8 @@ class TagType(): # Expand as necessary
                 except IndexError as exception:
                     self.SpecialTagTerm = None
         return
+
+
 
 def GenerateBrowseThumbnail(filename: str, browsepage: int, maxfiles: int) -> str: #TODO: UPDATE TO SUPPORT 64px and 256px thumbnails!
     file = (os.path.splitext(filename))
@@ -497,7 +519,6 @@ def validate_filename(filename):
 
 def ProcessImageForUse(filename): # Processes pngs, jpgs, and gifs. TODO: Add support for webp, tiff, raw, eps, and .bmp if possible.
     filename = filename.lower()
-    filesavepath = f"{upload_directory}/../tempprocessed"
     filenamefull = f"p_full_{filename}"
     filename256 = f"p_256_{filename}"
     filename128 = f"p_128_{filename}"
@@ -561,11 +582,10 @@ def ProcessFileIntoDatabase(file_uuid: str, file_processing_thread: threading.Th
         with open(os.path.join(upload_directory, "..", "params", f"error_params_{file_uuid}.txt", 'w', encoding="utf-8")) as errfile:
             errfile.write(f"ERROR: Params file not found for file UUID: \"{file_uuid}\".")
         return
-    filesavepath = f"{upload_directory}/../tempprocessed"
     raw = file.read()
     file.close()
     fileparams = json.loads(raw)
-    del raw
+    del raw, file
     fileext = os.path.splitext(fileparams["Full_Filename"])[1]
     fileidalreadyexists = loonboorumysql.CheckIfFileUUIDExists(fileparams["New_File_ID"]) # A little contingency in the one in a bajillion chance this UUID is already occupied.
     if fileidalreadyexists:
@@ -624,8 +644,6 @@ def DeleteFilesFromBadUpload(badthread: threading.Thread, temp_filename: str, fi
         os.remove(os.path.join(upload_directory, temp_filename))
     except FileNotFoundError as exception:
         pass
-    filesavepath = f"{upload_directory}/../tempprocessed"
-    fileparampath = f"{upload_directory}/../params"
     newfullfilepath = os.path.join(filestorepath, "full", f"{file_id}{filetype}")
     new256filepath = os.path.join(filestorepath, "thumb", "256", f"{file_id}{thumbfiletype}")
     new128filepath = os.path.join(filestorepath, "thumb", "128", f"{file_id}{thumbfiletype}")
@@ -663,7 +681,7 @@ def DeleteFilesFromBadUpload(badthread: threading.Thread, temp_filename: str, fi
 def upload_file():
     if request.method == 'POST':
         if AuthenticateUserAuth(session) == False:
-            abort(403) # This will work for now, but make a nicer looking version!
+            abort(403) # TODO: This will work for now, but make a nicer looking version!
         if 'file' not in request.files:
             upload_flat = ""
             if use_flat_tag == True:
@@ -723,96 +741,179 @@ def upload_file():
             file_artistlist = []
             if uploadinfo["artistlist"] != "" and uploadinfo["artistlist"] != None:
                 artistlstemp = uploadinfo["artistlist"].split("\r\n")
+                artistlstempfmt = []
                 for i in artistlstemp:
-                    i.replace(",", "")
-                    i.replace(":", "")
+                    i = i.replace(",", "")
+                    i = i.replace(":", "")
+                    i = i.replace("\n", "")
+                    i = i.replace("\r", "")
                     i = i.strip()
-                for i in artistlstemp:
+                    artistlstempfmt.append(i)
+                for i in artistlstempfmt:
                     artistname = i
                     if artistname == None or artistname == "":
                         continue
                     else:
                         file_artistlist.append(artistname)
+            try:
+                del artistname, artistlstemp, artistlstempfmt
+            except NameError as exception:
+                pass
             file_characterlist = []
             if uploadinfo["characterlist"] != "" and uploadinfo["characterlist"] != None:
                 characterlstemp = uploadinfo["characterlist"].split("\r\n")
                 for i in characterlstemp:
                     brokencharls = i.split(",")
+                    brokencharlsfmt = []
                     for j in brokencharls:
-                        j.replace(":", "")
-                        j.replace(",", "")
-                        j.strip()
+                        j = j.replace(":", "")
+                        j = j.replace(",", "")
+                        j = j.replace("\n", "")
+                        j = j.replace("\r", "")
+                        j = j.strip()
+                        brokencharlsfmt.append(j)
+                    charactername = ""
                     try:
-                        charactername = brokencharls[0]
-                        characterspecies = brokencharls[1]
-                        charactercampaign = brokencharls[2]
-                        characteruniverse = brokencharls[3]
-                        characterowner = brokencharls[4]
-                        file_characterlist.append({"Name": charactername,
-                        "Species": characterspecies,
-                        "Campaign": charactercampaign,
-                        "Universe": characteruniverse,
-                        "Owner": characterowner})
+                        charactername = brokencharlsfmt[0]
                     except IndexError as exception:
                         continue
+                    characterspecies = ""
+                    try:
+                        characterspecies = brokencharlsfmt[1]
+                    except IndexError as exception:
+                        pass
+                    charactercampaign = ""
+                    try:
+                        charactercampaign = brokencharlsfmt[2]
+                    except IndexError as exception:
+                        pass
+                    characterowner = ""
+                    try:
+                        characterowner = brokencharlsfmt[3]
+                    except IndexError as exception:
+                        pass
+                    file_characterlist.append({"Name": charactername,
+                    "Species": characterspecies,
+                    "Campaign": charactercampaign,
+                    "Owner": characterowner})
+            try:
+                del brokencharls, brokencharlsfmt, characterlstemp
+                del charactername, characterspecies, charactercampaign, characterowner 
+            except NameError as exception:
+                pass
             file_specieslist = []
             if uploadinfo["specieslist"] != "" and uploadinfo["specieslist"] != None:
                 specieslstemp = uploadinfo["specieslist"].split("\r\n")
                 for i in specieslstemp:
                     brokenspecls = i.split(",")
+                    brokenspeclsfmt = []
                     for j in brokenspecls:
-                        j.replace(":", "")
-                        j.replace(",", "")
-                        j.strip()
+                        j = j.replace(":", "")
+                        j = j.replace(",", "")
+                        j = j.replace("\n", "")
+                        j = j.replace("\r", "")
+                        j = j.strip()
+                        brokenspeclsfmt.append(j)
+                    speciesname = ""
+                    speciesuniverse = ""
                     try:
-                        speciesname = brokenspecls[0]
-                        speciesuniverse = brokenspecls[1]
-                        file_specieslist.append({"Name": speciesname, "Universe": speciesuniverse})
+                        speciesname = brokenspeclsfmt[0]
                     except IndexError as exception:
                         continue
+                    try:
+                        speciesuniverse = brokenspeclsfmt[1]
+                    except IndexError as exception:
+                        pass
+                    file_specieslist.append({"Name": speciesname, "Universe": speciesuniverse})
+            try:
+                del specieslstemp, brokenspecls, brokenspeclsfmt
+                del speciesname, speciesuniverse
+            except NameError as exception:
+                pass
             file_campaignlist = []
             if uploadinfo["campaignlist"] != "" and uploadinfo["campaignlist"] != None:
                 campaignlstemp = uploadinfo["campaignlist"].split("\r\n")
                 for i in campaignlstemp:
                     brokencmpls = i.split(",")
+                    brokencmplsfmt = []
                     for j in brokencmpls:
-                        j.replace(":", "")
-                        j.replace(",", "")
-                        j.strip()
+                        j = j.replace(":", "")
+                        j = j.replace(",", "")
+                        j = j.replace("\n", "")
+                        j = j.replace("\r", "")
+                        j = j.strip()
+                        brokencmplsfmt.append(j)
+                    campaignname = ""
                     try:
-                        campaignname = brokencmpls[0]
-                        campaignuniverse = brokencmpls[1]
-                        campaignowner = brokencmpls[2]
-                        file_campaignlist.append({
-                            "Name": campaignname,
-                            "Universe": campaignuniverse,
-                            "Owner": campaignowner})
+                        campaignname = brokencmplsfmt[0]
                     except IndexError as exception:
                         continue
+                    campaignuniverse = ""
+                    try:
+                        campaignuniverse = brokencmplsfmt[1]
+                    except IndexError as exception:
+                        pass
+                    campaignowner = ""
+                    try:
+                        campaignowner = brokencmplsfmt[2]
+                    except IndexError as exception:
+                        pass
+                    file_campaignlist.append({
+                        "Name": campaignname,
+                        "Universe": campaignuniverse,
+                        "Owner": campaignowner})
+            try:
+                del campaignlstemp, brokencmpls, brokencmplsfmt
+                del campaignname, campaignuniverse, campaignowner
+            except NameError as exception:
+                pass
             file_universelist = []
             if uploadinfo["universelist"] != "" and uploadinfo["universelist"] != None:
                 universelstemp = uploadinfo["universelist"].split("\r\n")
                 for i in universelstemp:
                     brokenunils = i.split(",")
+                    brokenunilsfmt = []
                     for j in brokenunils:
-                        j.replace(":", "")
-                        j.replace(",", "")
-                        j.strip()
+                        j = j.replace(":", "")
+                        j = j.replace(",", "")
+                        j = j.replace("\n", "")
+                        j = j.replace("\r", "")
+                        j = j.strip()
+                        brokenunilsfmt.append(j)
+                    universename = ""
                     try:
-                        universename = brokenunils[0]
-                        universeowner = brokenunils[1]
-                        file_universelist.append({"Name": universename, "Owner": universeowner})
+                        universename = brokenunilsfmt[0]
                     except IndexError as exception:
                         continue
+                    universeowner = ""
+                    try:
+                        universeowner = brokenunilsfmt[1]
+                    except IndexError as exception:
+                        pass
+                    file_universelist.append({"Name": universename, "Owner": universeowner})
+            try:
+                del universelstemp, brokenunils, brokenunilsfmt
+                del universename, universeowner
+            except NameError as exception:
+                pass
             file_tagslist = []
             if uploadinfo["tagslist"] != "" and uploadinfo["tagslist"] != None:
                 tagslstemp = uploadinfo["tagslist"].split("\r\n")
+                taglstempfmt = []
                 for i in tagslstemp:
-                    j.replace(":", "")
-                    j.replace(",", "")
-                    j.strip()
+                    i = i.replace(":", "")
+                    i = i.replace(",", "")
+                    i = i.replace("\n", "")
+                    i = i.replace("\r", "")
+                    i = i.strip()
+                    taglstempfmt.append(i)
+                for i in taglstempfmt:
                     file_tagslist.append(i)
-            filesavepath = f"{upload_directory}/../tempprocessed"
+            try:
+                del tagslstemp, taglstempfmt
+                del i, j
+            except NameError as exception:
+                pass            
             filenamefull = f"p_full_{filename}"
             filename256 = f"p_256_{filename}"
             filename128 = f"p_128_{filename}"
@@ -838,10 +939,18 @@ def upload_file():
                 "Universe_List": file_universelist,
                 "Tags_List": file_tagslist
             }
+            try:
+                del filenamefull, filename256, filename128, filename64
+            except NameError as exception:
+                pass
             rawtofile = json.dumps(paramdict)
             paramfilepath = os.path.join(upload_directory, "..", "params", f"params_{temp_uuid}.json")
             with open(paramfilepath, 'w', encoding="utf-8") as paramfile:
                 paramfile.write(rawtofile)
+            try:
+                del rawtofile, paramdict
+            except NameError as exception:
+                pass
             databaseprocessthread = threading.Thread(target=ProcessFileIntoDatabase, args=(temp_uuid, imgprocessthread, paramfilepath))
             databaseprocessthread.start()
         upload_flat = ""
@@ -849,7 +958,7 @@ def upload_file():
             upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
         return render_template("upload.html", UPLOAD_STATUS="Upload success! The file is now being processed.", FLAT_RADIO=upload_flat)
     elif request.method == 'GET':
-        if AuthenticateUserAuth(session) == True:
+        if AuthenticateUserAuth(session) == True: 
             upload_flat = ""
             if use_flat_tag == True:
                 upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"

@@ -16,3 +16,6 @@ rsc/file/thumb/128/
 rsc/file/thumb/256/
 rsc/_pycache_/
 _pycache_/
+__pycache__/booruobj.cpython-39.pyc
+__pycache__/loonbooru.cpython-39.pyc
+__pycache__/loonboorumysql.cpython-39.pyc

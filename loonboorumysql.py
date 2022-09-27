@@ -672,20 +672,20 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
             if out == None:
                 dbcs.execute("INSERT INTO `Species_Universe` (`Species_ID`, `Universe_ID`) VALUES (%s, %s);", (species_uuid, universe_uuid))
             dbase.commit()
-            dbcs.execute("SELECT * FROM `Files_Species` WHERE `File_ID` = %s AND `Species_ID` = %s LIMIT 1;", (file_uuid, species_uuid))
-            out = dbcs.fetchone()
-            if out == None:
-                dbcs.execute("INSERT INTO `Files_Species`(`File_ID`, `Species_ID`) VALUES (%s, %s);", (file_uuid, species_uuid))
-            dbcs.execute("SELECT `Species_ID` FROM `Species_Alias` WHERE `Species_ID` = %s AND `Species_Alias` = %s LIMIT 1;", (species_uuid, speciesname.lower()))
-            out = dbcs.fetchone()
-            if out == None:
-                dbcs.execute("INSERT INTO `Species_Alias`(`Species_ID`, `Species_Alias`, `Species_Alias_Proper`) VALUES (%s, %s, %s)", (species_uuid, speciesname.lower(), speciesname))
-            dbase.commit()
-            searchinsertlist.append(f"species_id:{species_uuid}")
-            searchinsertlist.append(f"speciesid:{species_uuid}")
-            searchinsertlist.append(f"species:{speciesname.lower()}")
-            searchinsertlist.append(f"speciesname:{speciesname.lower()}")
-            searchinsertlist.append(f"species_name:{speciesname.lower()}")
+        dbcs.execute("SELECT * FROM `Files_Species` WHERE `File_ID` = %s AND `Species_ID` = %s LIMIT 1;", (file_uuid, species_uuid))
+        out = dbcs.fetchone()
+        if out == None:
+            dbcs.execute("INSERT INTO `Files_Species`(`File_ID`, `Species_ID`) VALUES (%s, %s);", (file_uuid, species_uuid))
+        dbcs.execute("SELECT `Species_ID` FROM `Species_Alias` WHERE `Species_ID` = %s AND `Species_Alias` = %s LIMIT 1;", (species_uuid, speciesname.lower()))
+        out = dbcs.fetchone()
+        if out == None:
+            dbcs.execute("INSERT INTO `Species_Alias`(`Species_ID`, `Species_Alias`, `Species_Alias_Proper`) VALUES (%s, %s, %s)", (species_uuid, speciesname.lower(), speciesname))
+        dbase.commit()
+        searchinsertlist.append(f"species_id:{species_uuid}")
+        searchinsertlist.append(f"speciesid:{species_uuid}")
+        searchinsertlist.append(f"species:{speciesname.lower()}")
+        searchinsertlist.append(f"speciesname:{speciesname.lower()}")
+        searchinsertlist.append(f"species_name:{speciesname.lower()}")
     for i in campaignlist:
         campaignname = i["Name"].strip()
         campaignuniverse = i["Universe"].strip()
