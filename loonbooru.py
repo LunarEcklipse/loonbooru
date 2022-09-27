@@ -366,7 +366,7 @@ def viewpage(page):
         artistprnt = ""
         for i in file.Artists:
             artistprnt += f"{i.ArtistNameProper}, "
-        artistprnt = artistprnt[:-1]
+        artistprnt = artistprnt[:-2]
         print(artistprnt)
     charprnt = ""
     if file.Characters != None and len(file.Characters) != 0:
@@ -457,17 +457,6 @@ def viewpage(page):
         username = loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"])
         loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=view&page={page}&maxfiles={maxfiles}&tags={tags}\">Log Out.</a></p>"
     return render_template("view.html", SITE_NAME=site_name, DESCRIPTION=file.Description, DISPLAY_NAME=file.DisplayName, FILE_PATH=f"{cdn_url}/full/{file.FileID}.{file.FileEXT}", ARTIST_NAME=artistprnt, FILE_RATING=file.FileRating, UPLOAD_DATE=file.UploadDatetime, TAG_LIST=tagprint, CHAR_LIST=charprnt, SPEC_LIST=specprnt, CAMPAIGN_LIST=campprnt, UNIVERSE_LIST=uniprnt, LOGIN_INFO=loginstr)
-
-@app.route("/results/")
-def ResultsNoQuery():
-    arg = request.args.to_dict()
-    maxfiles = "25"
-    if "maxfiles" in arg:
-        maxfiles = arg["maxfiles"]
-    tags = ""
-    if "tags" in arg:
-        tags = arg["tags"]
-    return redirect(f"{site_url_name}/browse/1?maxfiles={str(maxfiles)}&tags={tags}")
 
 @app.route("/search/<page>")
 def SearchFSlashRedirect(page):

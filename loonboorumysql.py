@@ -352,6 +352,12 @@ def CheckIfFileUUIDExists(uuid: str) -> bool:
         return False
     return True
 
+def AddFileIDToProcessingQueue(file_uuid: str):
+    if file_uuid == None or file_uuid == "" or file_uuid.isspace() == True:
+        return
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+
 def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, display_name: str, description: str, rating: str, flat: bool=None, artistlist: list=[], characterlist: list=[], specieslist: list=[], campaignlist:list=[], universelist: list=[], tagslist: list=[]):
     file_uuid = file_uuid.strip()
     user_id = user_id.strip()
@@ -365,7 +371,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
     if file_uuid == None:
         raise InsufficientInsertionData
     dbase = ConnectToDB()
-    dbcs = dbase.cursor()
+    dbcs = dbase.cursor(prepared=True)
     if rating == "safe" or rating == "s":
         rating = "s"
     elif rating == "questionable" or rating == "q":
