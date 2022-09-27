@@ -1,5 +1,4 @@
 import os
-from symbol import continue_stmt
 import sys
 import threading
 from flask import Flask, render_template, request, redirect, url_for, abort, flash, make_response, session, escape
@@ -327,7 +326,7 @@ def viewpage(page):
         page = str(page)
     except ValueError as exception:
         abort(404)
-    file = loonboorumysql.FetchFileDetail(page) # TODO: Filedetail now passes through species, but it needs to be implemented here as well.
+    file = loonboorumysql.FetchFileDetail(page)
     if file == None:
         abort(404)
     tagprint = ""
@@ -338,16 +337,15 @@ def viewpage(page):
     if tagprint == "":
         tagprint = "No tags found."
     else:
-        tagprint = tagprint[:-1]
-        tagprint = tagprint[:-1]
+        tagprint = tagprint[:-2]
     artistprnt = "Unknown"
     if file.Artists != None and len(file.Artists) != 0:
         file.Artists.sort(key=lambda lm: lm.ArtistName)
         artistprnt = ""
         for i in file.Artists:
-            artistprnt += i.ArtistNameProper + ", "
+            artistprnt += f"{i.ArtistNameProper}, "
         artistprnt = artistprnt[:-1]
-        artistprnt = artistprnt[:-1]
+        print(artistprnt)
     charprnt = ""
     if file.Characters != None and len(file.Characters) != 0:
         charprnt = ""
@@ -374,11 +372,9 @@ def viewpage(page):
                     charprnt += " ("
                     for j in i.CharacterOwner:
                         charprnt += f"{j.UsernameProper}, "
-                    charprnt = charprnt[:-1]
-                    charprnt = charprnt[:-1]
+                    charprnt = charprnt[:-2]
                     charprnt += "), "
-            charprnt = charprnt[:-1]
-            charprnt = charprnt[:-1]
+            charprnt = charprnt[:-2]
             del templs
             charprnt += "</p>"
     specprnt = ""
@@ -394,8 +390,7 @@ def viewpage(page):
             #     specprnt = specprnt[:-1]
             #     specprnt = specprnt[:-1]
             #     specprnt += "), "
-        specprnt = specprnt[:-1]
-        specprnt = specprnt[:-1]
+        specprnt = specprnt[:-2]
         specprnt += "</p>"
     campprnt = ""
     if file.Campaigns != None and len(file.Campaigns) != 0:
@@ -411,12 +406,10 @@ def viewpage(page):
                 campprnt += " ("
                 for j in i.CampaignOwner:
                     campprnt += f"{j.UsernameProper}, "
-                campprnt = campprnt[:-1]
-                campprnt = campprnt[:-1]
+                campprnt = campprnt[:-2]
                 campprnt += ")"
             campprnt += ", "
-        campprnt = campprnt[:-1]
-        campprnt = campprnt[:-1]
+        campprnt = campprnt[:-2]
         campprnt += "</p>"
     uniprnt = ""
     if file.Universes != None and len(file.Universes) != 0:
@@ -432,12 +425,10 @@ def viewpage(page):
                 uniprnt += " ("
                 for j in i.UniverseOwner:
                     uniprnt += f"{j.UsernameProper}, "
-                uniprnt = uniprnt[:-1]
-                uniprnt = uniprnt[:-1]
+                uniprnt = uniprnt[:-2]
                 uniprnt += ")"
             uniprnt += ", "
-        uniprnt = uniprnt[:-1]
-        uniprnt = uniprnt[:-1]
+        uniprnt = uniprnt[:-2]
         uniprnt += "</p>"
     loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=browse&page={page}&maxfiles={maxfiles}&tags={tags}\">Log in.</a></p>"
     if AuthenticateUserAuth(session) == True:
@@ -554,6 +545,10 @@ def ProcessImageForUse(filename): # Processes pngs, jpgs, and gifs. TODO: Add su
         im.thumbnail(size64, Image.ANTIALIAS)
         im.save(os.path.join(filesavepath, filename64parsed[0], ".png"))
         im.close()
+    try:
+        os.remove(os.path.join(upload_directory, filename))
+    except FileNotFoundError as exception:
+        pass
     return
 
 def ProcessFileIntoDatabase(file_uuid: str, file_processing_thread: threading.Thread, paramfilepath: str): # What the fuck is wrong with you
@@ -593,6 +588,75 @@ def ProcessFileIntoDatabase(file_uuid: str, file_processing_thread: threading.Th
     shutil.copyfile(os.path.join(filesavepath, fileparams["64_Filename"]), new64filepath)
     fileext = fileext.replace(".", "")
     loonboorumysql.InsertNewFileIntoDatabase(new_file_id, fileparams["Uploader_ID"], fileext, fileparams["Display_Name"], fileparams["Description"], fileparams["Rating"], None, fileparams["Artist_List"], fileparams["Character_List"], fileparams["Species_List"], fileparams["Campaign_List"], fileparams["Universe_List"], fileparams["Tags_List"])
+    try:
+        os.remove(os.path.join(filesavepath, fileparams["Full_Filename"]))
+    except FileNotFoundError as exception:
+        pass
+    try:
+        os.remove(os.path.join(filesavepath, fileparams["256_Filename"]))
+    except FileNotFoundError as exception:
+        pass
+    try:
+        os.remove(os.path.join(filesavepath, fileparams["128_Filename"]))
+    except FileNotFoundError as exception:
+        pass
+    try:
+        os.remove(os.path.join(filesavepath, fileparams["64_Filename"]))
+    except FileNotFoundError as exception:
+        pass
+    try:
+        os.remove(paramfilepath)
+    except FileNotFoundError as exception:
+        pass
+    return
+
+def DeleteFilesFromBadUpload(badthread: threading.Thread, temp_filename: str, file_id: str): # Catches the thread processing files and then deletes them.
+    if badthread == None:
+        return
+    if file_id == None:
+        raise IndexError
+    badthread.join()
+    filetype = os.path.splitext(temp_filename)[1]
+    thumbfiletype = filetype
+    if filetype == ".gif":
+        thumbfiletype = ".png"
+    try:
+        os.remove(os.path.join(upload_directory, temp_filename))
+    except FileNotFoundError as exception:
+        pass
+    filesavepath = f"{upload_directory}/../tempprocessed"
+    fileparampath = f"{upload_directory}/../params"
+    newfullfilepath = os.path.join(filestorepath, "full", f"{file_id}{filetype}")
+    new256filepath = os.path.join(filestorepath, "thumb", "256", f"{file_id}{thumbfiletype}")
+    new128filepath = os.path.join(filestorepath, "thumb", "128", f"{file_id}{thumbfiletype}")
+    new64filepath = os.path.join(filestorepath, "thumb", "64", f"{file_id}{thumbfiletype}")
+    try:
+        os.remove(newfullfilepath)
+    except FileNotFoundError as exception:
+        pass
+    try:
+        os.remove(new256filepath)
+    except FileNotFoundError as exception:
+        pass
+    try:
+        os.remove(new128filepath)
+    except FileNotFoundError as exception:
+        pass
+    try:
+        os.remove(new64filepath)
+    except FileNotFoundError as exception:
+        pass
+    tempfilelist = [f for f in os.listdir(filesavepath) if os.path.isfile(os.path.join(filesavepath, f))]
+    for i in tempfilelist:
+        if i.find(file_id) != -1:
+            try:
+                os.remove(os.path.join(filesavepath, i))
+            except FileNotFoundError as exception:
+                pass
+    try:
+        os.remove(os.path.join(fileparampath, f"params_{file_id}.json"))
+    except FileNotFoundError as exception:
+        pass
     return
 
 @app.route("/upload", methods=['GET', 'POST'])
@@ -625,18 +689,40 @@ def upload_file():
             uploadinfo = request.form.to_dict()
             file_displayname = uploadinfo["filename"]
             if file_displayname == None or file_displayname == "" or file_displayname.isspace() == True:
-                abort(422)
+                badfilethread = threading.Thread(target=DeleteFilesFromBadUpload, args=(imgprocessthread, filename, temp_uuid))
+                badfilethread.start()
+                upload_flat = ""
+                if use_flat_tag == True:
+                    upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
+                return render_template("upload.html", UPLOAD_STATUS="No filename was supplied.", FLAT_RADIO=upload_flat)
             file_description = uploadinfo["filedesc"]
             if file_description == None or file_description == "" or file_description.isspace() == True:
                 file_description = None
-            file_rating = uploadinfo["filerating"]
+            file_rating = None
+            try:
+                file_rating = uploadinfo["filerating"]
+            except KeyError as exception:
+                badfilethread = threading.Thread(target=DeleteFilesFromBadUpload, args=(imgprocessthread, filename, temp_uuid))
+                badfilethread.start()
+                upload_flat = ""
+                if use_flat_tag == True:
+                    upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
+                return render_template("upload.html", UPLOAD_STATUS="No file rating was supplied.", FLAT_RADIO=upload_flat)
             if use_flat_tag:
-                file_flat = uploadinfo["fileflat"]
+                try:
+                    file_flat = uploadinfo["fileflat"]
+                except KeyError as exception:
+                    badfilethread = threading.Thread(target=DeleteFilesFromBadUpload, args=(imgprocessthread, filename, temp_uuid))
+                    badfilethread.start()
+                    upload_flat = ""
+                    if use_flat_tag == True:
+                        upload_flat = "<label for=\"fileflat\">Flat:</label><input type=\"radio\" id=\"fileflatyes\" name=\"fileflat\" value=\"flatyes\"><label for=\"fileflatyes\">Yes</label><input type=\"radio\" id=\"fileflatno\" name=\"fileflat\" value=\"flatno\"><label for=\"fileflatno\">No</label><br>"
+                    return render_template("upload.html", UPLOAD_STATUS="The file's Flat rating was not supplied.", FLAT_RADIO=upload_flat)
             else:
                 file_flat = None
             file_artistlist = []
             if uploadinfo["artistlist"] != "" and uploadinfo["artistlist"] != None:
-                artistlstemp = uploadinfo["artistlist"].split("/n")
+                artistlstemp = uploadinfo["artistlist"].split("\r\n")
                 for i in artistlstemp:
                     i.replace(",", "")
                     i.replace(":", "")
@@ -649,7 +735,7 @@ def upload_file():
                         file_artistlist.append(artistname)
             file_characterlist = []
             if uploadinfo["characterlist"] != "" and uploadinfo["characterlist"] != None:
-                characterlstemp = uploadinfo["characterlist"].split("/n")
+                characterlstemp = uploadinfo["characterlist"].split("\r\n")
                 for i in characterlstemp:
                     brokencharls = i.split(",")
                     for j in brokencharls:
@@ -671,7 +757,7 @@ def upload_file():
                         continue
             file_specieslist = []
             if uploadinfo["specieslist"] != "" and uploadinfo["specieslist"] != None:
-                specieslstemp = uploadinfo["specieslist"].split("/n")
+                specieslstemp = uploadinfo["specieslist"].split("\r\n")
                 for i in specieslstemp:
                     brokenspecls = i.split(",")
                     for j in brokenspecls:
@@ -686,7 +772,7 @@ def upload_file():
                         continue
             file_campaignlist = []
             if uploadinfo["campaignlist"] != "" and uploadinfo["campaignlist"] != None:
-                campaignlstemp = uploadinfo["campaignlist"].split("/n")
+                campaignlstemp = uploadinfo["campaignlist"].split("\r\n")
                 for i in campaignlstemp:
                     brokencmpls = i.split(",")
                     for j in brokencmpls:
@@ -705,7 +791,7 @@ def upload_file():
                         continue
             file_universelist = []
             if uploadinfo["universelist"] != "" and uploadinfo["universelist"] != None:
-                universelstemp = uploadinfo["universelist"].split("/n")
+                universelstemp = uploadinfo["universelist"].split("\r\n")
                 for i in universelstemp:
                     brokenunils = i.split(",")
                     for j in brokenunils:
@@ -720,7 +806,7 @@ def upload_file():
                         continue
             file_tagslist = []
             if uploadinfo["tagslist"] != "" and uploadinfo["tagslist"] != None:
-                tagslstemp = uploadinfo["tagslist"].split("/n")
+                tagslstemp = uploadinfo["tagslist"].split("\r\n")
                 for i in tagslstemp:
                     j.replace(":", "")
                     j.replace(",", "")
@@ -748,6 +834,7 @@ def upload_file():
                 "Artist_List": file_artistlist,
                 "Character_List": file_characterlist,
                 "Species_List": file_specieslist,
+                "Campaign_List": file_campaignlist,
                 "Universe_List": file_universelist,
                 "Tags_List": file_tagslist
             }

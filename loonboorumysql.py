@@ -353,6 +353,12 @@ def CheckIfFileUUIDExists(uuid: str) -> bool:
     return True
 
 def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, display_name: str, description: str, rating: str, flat: bool=None, artistlist: list=[], characterlist: list=[], specieslist: list=[], campaignlist:list=[], universelist: list=[], tagslist: list=[]):
+    file_uuid = file_uuid.strip()
+    user_id = user_id.strip()
+    file_ext = file_ext.strip()
+    display_name = display_name.strip()
+    description = description.strip()
+    rating = rating.strip()
     searchinsertlist = []
     if flat == None and useflat == True:
         flat = False
@@ -378,11 +384,12 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
     searchinsertlist.append(f"uploaderid:{user_id}")
     dbcs.execute("SELECT `Username` FROM `User_Base` WHERE `User_ID` = %s LIMIT 1;", (user_id,))
     uploadername = dbcs.fetchone()
-    searchinsertlist.append(f"uploader:{uploadername[0]}")
-    searchinsertlist.append(f"uploader_name:{uploadername[0]}")
-    searchinsertlist.append(f"uploadername:{uploadername[0]}")
-    searchinsertlist.append(f"uploader_username:{uploadername[0]}")
-    searchinsertlist.append(f"uploaderusername:{uploadername[0]}")
+    uploadername = uploadername[0].strip()
+    searchinsertlist.append(f"uploader:{uploadername}")
+    searchinsertlist.append(f"uploader_name:{uploadername}")
+    searchinsertlist.append(f"uploadername:{uploadername}")
+    searchinsertlist.append(f"uploader_username:{uploadername}")
+    searchinsertlist.append(f"uploaderusername:{uploadername}")
     searchinsertlist.append(f"file_extension:{file_ext}")
     searchinsertlist.append(f"fileextension:{file_ext}")
     searchinsertlist.append(f"fileext:{file_ext}")
@@ -444,8 +451,9 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
             searchinsertlist.append(f"isflat:no")
         dbase.commit()
     for i in artistlist:
-        if i == None or i == "":
+        if i == None or i == "" or i.isspace() == True:
             continue
+        i = i.strip()
         dbcs.execute("SELECT `Artist_ID` FROM `Artist_Base` WHERE `Artist_Name` = %s LIMIT 1;", (i.lower(),))
         out = dbcs.fetchone()
         artist_uuid = None
@@ -465,6 +473,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
                         found_new_uuid = False
             artist_uuid = new_artist_uuid
             dbcs.execute("INSERT INTO `Artist_Base`(`Artist_ID`, `User_ID`, `Artist_Name`, `Artist_Name_Proper`) VALUES (%s, %s, %s, %s);", (new_artist_uuid, None, i.lower(), i))
+            dbase.commit()
         else:
             artist_uuid = out[0]
         dbcs.execute("SELECT * FROM `Files_Artist` WHERE `File_ID` = %s AND `Artist_ID` = %s LIMIT 1;", (file_uuid, artist_uuid))
@@ -478,10 +487,10 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
         searchinsertlist.append(f"artistname:{i.lower()}")
         searchinsertlist.append(f"artist_name:{i.lower()}")
     for i in characterlist:
-        charactername = i["Name"]
-        characterspecies = i["Species"]
-        charactercampaign = i["Campaign"]
-        characterowner = i["Owner"]
+        charactername = i["Name"].strip()
+        characterspecies = i["Species"].strip()
+        charactercampaign = i["Campaign"].strip()
+        characterowner = i["Owner"].strip()
         if charactername == None or charactername == "" or charactername.isspace() == True:
             continue
         if characterowner != None and characterowner != "" and characterowner.isspace() == False:
@@ -506,6 +515,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
                         found_new_uuid = False
             character_uuid = new_character_id
             dbcs.execute("INSERT INTO `Character_Base`(`Character_ID`, `Character_Name`, `Character_Name_Proper`) VALUES (%s, %s, %s);", (new_character_id, charactername.lower(), charactername))
+            dbase.commit()
         else:
             character_uuid = out[0]
         owner_uuid = None
@@ -528,6 +538,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
                             found_new_uuid = False
                 owner_uuid = new_user_id
                 dbcs.execute("INSERT INTO `User_Base`(`User_ID`, `Username`, `Username_Proper`, `Join_Datetime`) VALUES (%s, %s, %s, %s);", (new_user_id, characterowner.lower(), characterowner, datetime.now()))
+                dbase.commit()
             else:
                 owner_uuid = out[0]
             dbase.commit()
@@ -560,6 +571,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
                             found_new_uuid = False
                 species_uuid = new_species_id
                 dbcs.execute("INSERT INTO `Species_Base`(`Species_ID`, `Species_Name`, `Species_Name_Proper`) VALUES (%s, %s, %s);", (new_species_id, characterspecies.lower(), characterspecies))
+                dbase.commit()
             else:
                 species_uuid = out[0]
             dbcs.execute("SELECT * FROM `Character_Species` WHERE `Character_ID` = %s AND `Species_ID` = %s LIMIT 1;", (character_uuid, species_uuid))
@@ -587,6 +599,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
                             found_new_uuid = False
                 campaign_uuid = new_campaign_id
                 dbcs.execute("INSERT INTO `Campaign_Base`(`Campaign_ID`, `Campaign_Name`, `Campaign_Name_Proper`) VALUES (%s, %s, %s);", (new_campaign_id, charactercampaign.lower(), charactercampaign))
+                dbase.commit()
             else:
                 campaign_uuid = out[0]
             dbcs.execute("SELECT * FROM `Character_Campaign` WHERE `Character_ID` = %s AND `Campaign_ID` = %s LIMIT 1;", (character_uuid, campaign_uuid))
@@ -594,10 +607,10 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
             if out == None:
                 dbcs.execute("INSERT INTO `Character_Campaign`(`Character_ID`, `Campaign_ID`) VALUES (%s, %s);", (character_uuid, campaign_uuid))
             dbase.commit()
-        dbcs.execute("SELECT * FROM `Files_Characters` WHERE `File_ID` = %s AND `Character_ID` = %s LIMIT 1;", ())
+        dbcs.execute("SELECT * FROM `Files_Characters` WHERE `File_ID` = %s AND `Character_ID` = %s LIMIT 1;", (file_uuid, character_uuid))
         out = dbcs.fetchone()
         if out == None:
-            dbcs.execute("INSERT INTO `Files_Characters` (`File_ID`, `Character_ID`) VALUES (%s, %s);", (file_uuid, character_uuid))
+            dbcs.execute("INSERT INTO `Files_Characters` (`File_ID`, `Character_ID`, `Species_ID`) VALUES (%s, %s, %s);", (file_uuid, character_uuid, species_uuid))
         dbase.commit()
         searchinsertlist.append(f"character_id:{character_uuid}")
         searchinsertlist.append(f"characterid:{character_uuid}")
@@ -605,8 +618,8 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
         searchinsertlist.append(f"charactername:{charactername.lower()}")
         searchinsertlist.append(f"character_name:{charactername.lower()}")
     for i in specieslist:
-        speciesname = i["Name"]
-        speciesuniverse = i["Universe"]
+        speciesname = i["Name"].strip()
+        speciesuniverse = i["Universe"].strip()
         if speciesname == None or speciesname == "" or speciesname.isspace() == True:
             continue
         dbcs.execute("SELECT `Species_ID` FROM `Species_Base` WHERE `Species_Name` = %s LIMIT 1;", (speciesname.lower(),))
@@ -628,6 +641,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
                         found_new_uuid = False
             species_uuid = new_species_id
             dbcs.execute("INSERT INTO `Species_Base`(`Species_ID`, `Species_Name`, `Species_Name_Proper`) VALUES (%s, %s, %s);", (new_species_id, speciesname.lower(), speciesname))
+            dbase.commit()
         else:
             species_uuid = out[0]
         universe_uuid = None
@@ -637,44 +651,45 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
             if out == None:
                 new_universe_id = str(uuid.uuid4().hex)
                 dbcs.execute("SELECT `Universe_ID` FROM `Universe_Base` WHERE `Universe_ID` = %s LIMIT 1;", (new_universe_id,))
+                out = dbcs.fetchone()
+                if out != None:
+                    found_new_uuid = False
+                    while found_new_uuid == False:
+                        new_universe_id = str(uuid.uuid4().hex)
+                        dbcs.execute("SELECT `Universe_ID` FROM `Universe_Base` WHERE `Universe_ID` = %s LIMIT 1;", (new_universe_id,))
+                        out = dbcs.fetchone()
+                        if out == None:
+                            found_new_uuid = True
+                        else:
+                            found_new_uuid = False
+                universe_uuid = new_universe_id
+                dbcs.execute("INSERT INTO `Universe_Base`(`Universe_ID`, `Universe_Name`, `Universe_Name_Proper`) VALUES (%s, %s, %s);", (new_universe_id, speciesuniverse.lower(), speciesuniverse))
+                dbase.commit()
+            else:
+                universe_uuid = out[0]
+            dbcs.execute("SELECT * FROM `Species_Universe` WHERE `Species_ID` = %s AND `Universe_ID` = %s LIMIT 1;", (species_uuid, universe_uuid))
             out = dbcs.fetchone()
-            if out != None:
-                found_new_uuid = False
-                while found_new_uuid == False:
-                    new_universe_id = str(uuid.uuid4().hex)
-                    dbcs.execute("SELECT `Universe_ID` FROM `Universe_Base` WHERE `Universe_ID` = %s LIMIT 1;", (new_universe_id,))
-                    out = dbcs.fetchone()
-                    if out == None:
-                        found_new_uuid = True
-                    else:
-                        found_new_uuid = False
-            universe_uuid = new_universe_id
-            dbcs.execute("INSERT INTO `Universe_Base`(`Universe_ID`, `Universe_Name`, `Universe_Name_Proper`) VALUES (%s, %s, %s);", (new_universe_id, speciesuniverse.lower(), speciesuniverse))
-        else:
-            universe_uuid = out[0]
-        dbcs.execute("SELECT * FROM `Species_Universe` WHERE `Species_ID` = %s AND `Universe_ID` = %s LIMIT 1;", (species_uuid, universe_uuid))
-        out = dbcs.fetchone()
-        if out == None:
-            dbcs.execute("INSERT INTO `Species_Universe` (`Species_ID`, `Universe_ID`) VALUES (%s, %s);", (species_uuid, universe_uuid))
-        dbase.commit()
-        dbcs.execute("SELECT * FROM `Files_Species` WHERE `File_ID` = %s AND `Species_ID` = %s LIMIT 1;", (file_uuid, species_uuid))
-        out = dbcs.fetchone()
-        if out == None:
-            dbcs.execute("INSERT INTO `Files_Species`(`File_ID`, `Species_ID`) VALUES (%s, %s);", (file_uuid, species_uuid))
-        dbcs.execute("SELECT `Species_ID` FROM `Species_Alias` WHERE `Species_ID` = %s AND `Species_Alias` = %s LIMIT 1;", (species_uuid, speciesname.lower()))
-        out = dbcs.fetchone()
-        if out == None:
-            dbcs.execute("INSERT INTO `Species_Alias`(`Species_ID`, `Species_Alias`, `Species_Alias_Proper`) VALUES (%s, %s, %s)", (species_uuid, speciesname.lower(), speciesname))
-        dbase.commit()
-        searchinsertlist.append(f"species_id:{species_uuid}")
-        searchinsertlist.append(f"speciesid:{species_uuid}")
-        searchinsertlist.append(f"species:{speciesname.lower()}")
-        searchinsertlist.append(f"speciesname:{speciesname.lower()}")
-        searchinsertlist.append(f"species_name:{speciesname.lower()}")
+            if out == None:
+                dbcs.execute("INSERT INTO `Species_Universe` (`Species_ID`, `Universe_ID`) VALUES (%s, %s);", (species_uuid, universe_uuid))
+            dbase.commit()
+            dbcs.execute("SELECT * FROM `Files_Species` WHERE `File_ID` = %s AND `Species_ID` = %s LIMIT 1;", (file_uuid, species_uuid))
+            out = dbcs.fetchone()
+            if out == None:
+                dbcs.execute("INSERT INTO `Files_Species`(`File_ID`, `Species_ID`) VALUES (%s, %s);", (file_uuid, species_uuid))
+            dbcs.execute("SELECT `Species_ID` FROM `Species_Alias` WHERE `Species_ID` = %s AND `Species_Alias` = %s LIMIT 1;", (species_uuid, speciesname.lower()))
+            out = dbcs.fetchone()
+            if out == None:
+                dbcs.execute("INSERT INTO `Species_Alias`(`Species_ID`, `Species_Alias`, `Species_Alias_Proper`) VALUES (%s, %s, %s)", (species_uuid, speciesname.lower(), speciesname))
+            dbase.commit()
+            searchinsertlist.append(f"species_id:{species_uuid}")
+            searchinsertlist.append(f"speciesid:{species_uuid}")
+            searchinsertlist.append(f"species:{speciesname.lower()}")
+            searchinsertlist.append(f"speciesname:{speciesname.lower()}")
+            searchinsertlist.append(f"species_name:{speciesname.lower()}")
     for i in campaignlist:
-        campaignname = i["Name"]
-        campaignuniverse = i["Universe"]
-        campaignowner = i["Owner"]
+        campaignname = i["Name"].strip()
+        campaignuniverse = i["Universe"].strip()
+        campaignowner = i["Owner"].strip()
         campaign_uuid = None
         if campaignname == None or campaignname == "" or campaignname.isspace() == True:
             continue
@@ -747,13 +762,14 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
                             found_new_uuid = False
                 owner_uuid = new_user_id
                 dbcs.execute("INSERT INTO `User_Base`(`User_ID`, `Username`, `Username_Proper`, `Join_Datetime`) VALUES (%s, %s, %s, %s);", (new_user_id, campaignowner.lower(), campaignowner, datetime.now()))
+                dbase.commit()
             else:
                 owner_uuid = out[0]
             dbase.commit()
-            dbcs.execute("SELECT * FROM `Campaign_Owner` WHERE `Campaign_ID` = %s` AND `User_ID` = %s LIMIT 1;", (campaign_uuid, owner_uuid))
+            dbcs.execute("SELECT * FROM `Campaign_Owner` WHERE `Campaign_ID` = %s AND `User_ID` = %s LIMIT 1;", (campaign_uuid, owner_uuid))
             out = dbcs.fetchone()
             if out == None:
-                dbcs.execute("INSERT INTO `Campaign_Owner (`Campaign_ID`, `User_ID`) VALUES (%s, %s);", (campaign_uuid, owner_uuid))
+                dbcs.execute("INSERT INTO `Campaign_Owner` (`Campaign_ID`, `User_ID`) VALUES (%s, %s);", (campaign_uuid, owner_uuid))
             dbase.commit()
         dbcs.execute("SELECT * FROM `Files_Campaign` WHERE `File_ID` = %s AND `Campaign_ID` = %s LIMIT 1;", (file_uuid, campaign_uuid))
         out = dbcs.fetchone()
@@ -766,8 +782,8 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
         searchinsertlist.append(f"campaignname:{campaignname.lower()}")
         searchinsertlist.append(f"campaign_name:{campaignname.lower()}")
     for i in universelist:
-        universename = i["Name"]
-        universeowner = i["Owner"]
+        universename = i["Name"].strip()
+        universeowner = i["Owner"].strip()
         universe_uuid = None
         if universename == None or universename == "" or universename.isspace() == True: # Don't specify a blank universe
             continue
@@ -776,6 +792,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
         if out == None:
             new_universe_id = str(uuid.uuid4().hex)
             dbcs.execute("SELECT `Universe_ID` FROM `Universe_Base` WHERE `Universe_ID` = %s LIMIT 1;", (new_universe_id,))
+            out = dbcs.fetchone()
             if out != None:
                 found_new_uuid = False
                 while found_new_uuid == False:
@@ -789,6 +806,8 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
             universe_uuid = new_universe_id
             dbcs.execute("INSERT INTO `Universe_Base`(`Universe_ID`, `Universe_Name`, `Universe_Name_Proper`) VALUES (%s, %s, %s);", (new_universe_id, universename.lower(), universename))
             dbase.commit()
+        else:
+            universe_uuid = out[0]
         owner_uuid = None
         if universeowner != None and universeowner != "" and universeowner.isspace() == False:
             dbcs.execute("SELECT `User_ID` FROM `User_Base` WHERE `Username` = %s LIMIT 1;", (universeowner.lower(),))
@@ -809,6 +828,7 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
                             found_new_uuid = False
                 owner_uuid = new_user_id
                 dbcs.execute("INSERT INTO `User_Base`(`User_ID`, `Username`, `Username_Proper`, `Join_Datetime`) VALUES (%s, %s, %s, %s);", (new_user_id, universeowner.lower(), universeowner, datetime.now()))
+                dbase.commit()
             else:
                 owner_uuid = out[0]
             dbase.commit()
@@ -828,14 +848,16 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
         searchinsertlist.append(f"universename:{universename.lower()}")
         searchinsertlist.append(f"universe_name:{universename.lower()}")
     for i in tagslist:
+        i = i.strip()
         if i == None or i == "" or i.isspace():
             continue
-        dbcs.execute("SELECT `Tag_ID` FROM `Tag_Base` WHERE `Tag` = %s LIMIT 1;", (i.lower()))
+        dbcs.execute("SELECT `Tag_ID` FROM `Tag_Base` WHERE `Tag` = %s LIMIT 1;", (i.lower(),))
         out = dbcs.fetchone()
         tag_uuid = None
         if out == None:
             new_tag_id = str(uuid.uuid4().hex)
             dbcs.execute("SELECT `Tag_ID` FROM `Tag_Base` WHERE `Tag_ID` = %s LIMIT 1;", (new_tag_id,))
+            out = dbcs.fetchone()
             if out != None:
                 found_new_uuid = False
                 while found_new_uuid == False:
@@ -861,7 +883,9 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
         searchinsertlist.append(f"tag:{i.lower()}")
         searchinsertlist.append(f"{i.lower()}")
     for i in searchinsertlist:
+        i = i.strip()
         dbcs.execute("INSERT INTO `File_Search_Master`(`File_ID`, `Search_Term`) VALUES (%s, %s);", (file_uuid, i))
+        dbase.commit()
     dbase.commit()
     dbcs.close()
     dbase.close()
