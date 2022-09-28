@@ -9,9 +9,18 @@
     <body class="background">
         <header>
             {{LOGIN_INFO|safe}}
-            <hr class="headerborder">
+            <hr class="lbreak">
         </header>
-        <h1 class="dispname">{{DISPLAY_NAME}}</h1>
+        <div class="dispnamediv">
+            <div class="headernavbtndiv">
+                <div onclick="location.href='{{BACK_BTN_LINK}}'" class="headernavbtn">
+                    <p class="fullimgbtntext">Go Back</p>
+                </div>
+            </div>  
+            <div class="disptextdiv">
+                <h1 class="dispname">{{DISPLAY_NAME}}</h1>
+            </div>
+        </div>
         <hr class="lbreak">
         <div class="mainimgholder">
             <a href={{FILE_PATH}}><img class="mainimg" src={{FILE_PATH}}></a>

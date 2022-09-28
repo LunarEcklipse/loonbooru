@@ -60,11 +60,6 @@
     color:#C7AE40; 
 }
 
-.headerborder
-{
-    border: 1px solid #c7ae40;
-}
-
 .headertxt
 {
     font-family:Arial, Helvetica, sans-serif;
@@ -88,4 +83,42 @@
 {
     color:#C7AE40;
     background-color:transparent;
+}
+
+.headernavbtndiv
+{
+    text-align:left;
+    display:inline-block;
+    width:33%
+}
+
+.headernavbtn
+{
+    display:inline-block;
+    border-color: #C7AE40;
+    background-color:#3A3B3C;
+    cursor:pointer;
+    font-size:x-large;
+    color:#C7AE40;
+    border:solid 3px;
+    border-radius:15px;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+.dispnamediv
+{
+    width: 100%;
+}
+
+.disptextdiv
+{
+    display: inline-block;
+    width:33%;
+    text-align:center;
+}
+
+h1
+{
+    margin-top:auto;
+    margin-bottom:auto;
 }

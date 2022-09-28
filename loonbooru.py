@@ -348,6 +348,7 @@ def viewpage(page):
         page = str(page)
     except ValueError as exception:
         abort(404)
+    backbtnlink = f"{site_url_name}/{browsetype}/{browsepage}?maxfiles={maxfiles}&tags={tags}"
     file = loonboorumysql.FetchFileDetail(page)
     if file == None:
         abort(404)
@@ -456,7 +457,7 @@ def viewpage(page):
     if AuthenticateUserAuth(session) == True:
         username = loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"])
         loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=view&page={page}&maxfiles={maxfiles}&tags={tags}\">Log Out.</a></p>"
-    return render_template("view.html", SITE_NAME=site_name, DESCRIPTION=file.Description, DISPLAY_NAME=file.DisplayName, FILE_PATH=f"{cdn_url}/full/{file.FileID}.{file.FileEXT}", ARTIST_NAME=artistprnt, FILE_RATING=file.FileRating, UPLOAD_DATE=file.UploadDatetime, TAG_LIST=tagprint, CHAR_LIST=charprnt, SPEC_LIST=specprnt, CAMPAIGN_LIST=campprnt, UNIVERSE_LIST=uniprnt, LOGIN_INFO=loginstr)
+    return render_template("view.html", SITE_NAME=site_name, DESCRIPTION=file.Description, DISPLAY_NAME=file.DisplayName, FILE_PATH=f"{cdn_url}/full/{file.FileID}.{file.FileEXT}", ARTIST_NAME=artistprnt, FILE_RATING=file.FileRating, UPLOAD_DATE=file.UploadDatetime, TAG_LIST=tagprint, CHAR_LIST=charprnt, SPEC_LIST=specprnt, CAMPAIGN_LIST=campprnt, UNIVERSE_LIST=uniprnt, LOGIN_INFO=loginstr, BACK_BTN_LINK=backbtnlink)
 
 @app.route("/search/<page>")
 def SearchFSlashRedirect(page):

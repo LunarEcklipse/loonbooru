@@ -160,8 +160,10 @@ def FetchFileDetail(id_num: str) -> booruobj.FileDetail: # TODO: ADD TAGS TO ME!
     if dbcs.rowcount == -1:
         return None
     outtpl = dbcs.fetchone()
-    File_ID = outtpl[0] # TODO: Nonetype object is not subscriptable
-    User_ID = outtpl[1] # TODO: ADD UPLOADER ID!
+    if outtpl == None:
+        return None
+    File_ID = outtpl[0]
+    User_ID = outtpl[1]
     File_EXT = outtpl[2]
     Display_Name = outtpl[3] 
     Desc = outtpl[4]
@@ -896,6 +898,3 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
     dbcs.close()
     dbase.close()
     return
-    
-
-
