@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>{{SITE_NAME}} | Administrate | Edit File</title>
+    </head>
+    <body>
+        <h1>Edit File</h1>
+        <hr>
+        <h2>Select File by File ID:</h2>
+        <form method="get">
+            <label for="fileid">File ID:</label>
+            <input type="text" id="fileid" name="fileid"><br>
+            <input type="submit" value="Go">
+        </form>
+        <hr>
+        {{FILE_SEARCH_RESULTS|safe}}
+        <h2>Search for File by URL:</h2>
+        <form method="get">
+            <label for="searchbyurl">Search by URL:</label>
+            <input type="text" id="searchbyurl" name="searchbyurl">
+            <input type="submit" value="Go">
+        </form>
+    </body>
+</html>

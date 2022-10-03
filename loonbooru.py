@@ -2,18 +2,24 @@ import os
 import sys
 import threading
 from flask import Flask, render_template, request, redirect, url_for, abort, flash, make_response, session, escape
+from flask import __version__ as currentflaskver
 from werkzeug.utils import secure_filename
 import imghdr
 import uuid
 import json
 from PIL import Image, ImageChops
+from PIL import __version__ as currentpilver
 import loonboorumysql
 import re
 import secrets
 import hashlib
 import shutil
+import loonbooru_adminfunc
 import booruobj
 from datetime import datetime
+import html
+
+loonbooru_version = "0.4.4"
 
 ### FLAGS ###
 
@@ -38,6 +44,8 @@ upload_allowed_extensions = {'jpg', 'png', 'gif', 'jpeg'}
 filesavepath = f"{upload_directory}/../tempprocessed"
 fileparampath = f"{upload_directory}/../params"
 
+# TODO: Make a task scheduling thread here!
+
 deadprocessingfilelist = [f for f in os.listdir(filesavepath) if os.path.isfile(os.path.join(filesavepath, f))] # TODO: This is super lazy and could be condensed a lot better. Also likely to become unused later on.
 for i in deadprocessingfilelist:
     try:
@@ -61,6 +69,9 @@ app = Flask(__name__, template_folder=templatepath)
 app.config['MAX_CONTENT_LENGTH'] = (32 * 1000 * 1000 * 1000) # Uploads limited to 16 mb
 app.config['UPLOAD_FOLDER'] = upload_directory
 app.secret_key = secrets.token_urlsafe(32)
+
+def GetFlaskVersion() -> str:
+    return currentflaskver
 
 # THE CODE FOR SPACE IS %20
 # THE CODE FOR COMMA IS %2C
@@ -956,14 +967,15 @@ def upload_file():
         return redirect(f"{site_url_name}/login?dest=upload", 302) # TODO: Pass through upload to this URL so that it automatically redirects back to upload after logging in.
     abort(403)
 
-# LOGIN FAIL REASONS:
-# 0 = Incorrect username/password
-# 1 = No username or password supplied
-# 2 = No username supplied
-# 3 = No password supplied
-
 @app.route("/login", methods=['GET'])
 def login():
+
+    # LOGIN FAIL REASONS:
+    # 0 = Incorrect username/password
+    # 1 = No username or password supplied
+    # 2 = No username supplied
+    # 3 = No password supplied
+
     arg = request.args.to_dict()
     login_fail_reason = None
     if "login_fail_reason" in session:
@@ -1022,12 +1034,13 @@ def login():
                 login_error = "No password supplied. You must supply a password."
         return render_template("login.html", SITE_NAME=site_name, LOGIN_MESSAGE=login_message, LOGIN_ERROR=login_error)
 
-# LOG OUT RESPONSE CODES:
-# 0 = Success
-# 1 = Not logged in
-
 @app.route("/logout", methods=['GET', 'POST'])
 def logout_user():
+
+    # LOG OUT RESPONSE CODES:
+    # 0 = Success
+    # 1 = Not logged in
+
     arg = request.args.to_dict()
     dest = "browse"
     if "dest" in request.form:
@@ -1104,3 +1117,46 @@ def authenticate_user():
     elif isvaliduser[0] == True:
         session['auth_token'] = isvaliduser[2]
         return redirect(f"{site_url_name}/redirect?dest={dest}&page={page}&maxfiles={maxfiles}&tags={tags}", 302)
+
+@app.route("/admin", methods=['GET'])
+def admin_pg():
+    authorize_admin = False
+    if "auth_token" in session:
+        if loonboorumysql.AuthenticateAuthTokenAsAdmin(session["auth_token"]):
+            authorize_admin = True
+    if authorize_admin == False:
+        abort(403)
+    currpyver = loonbooru_adminfunc.GetPythonVersion()
+    systemcpu = loonbooru_adminfunc.GetMachineProcessor()
+    systemcpuusage = loonbooru_adminfunc.GetCPUUsagePercent()
+    systemarchitecture = loonbooru_adminfunc.GetMachineArchitecture()
+    operatingsys = loonbooru_adminfunc.GetMachineOS()
+    processusage = f"{str(loonbooru_adminfunc.GetProcessMemoryUsageMegabytes())} MB"
+    databasestats = loonboorumysql.GetDatabaseStats()
+    return render_template("admin.html",
+    SITE_NAME=site_name,
+    SITE_URL=site_url_name,
+    SITE_CDN_URL=cdn_url,
+    CURRENT_PYTHON_VERSION=currpyver,
+    CURRENT_FLASK_VERSION=currentflaskver,
+    CURRENT_PIL_VERSION=currentpilver,
+    CPU_NAME=systemcpu,
+    CPU_BITS=systemarchitecture,
+    SYSTEM_OS_DETAILS=operatingsys,
+    CPU_USAGE=systemcpuusage,
+    LOONBOORU_VERSION=loonbooru_version,
+    LOONBOORU_MEMUSG=processusage,
+    FLAT_ENABLED=use_flat_tag,
+    UPLOAD_DIRECTORY=upload_directory,
+    FILE_STORE_PATH=filestorepath,
+    CURRENT_USER_LOGIN_COUNT=str(databasestats[9]),
+    DATABASE_FILE_COUNT=str(databasestats[3]),
+    DATABASE_ARTIST_COUNT=str(databasestats[0]),
+    DATABASE_CHARACTER_COUNT=str(databasestats[2]),
+    DATABASE_SPECIES_COUNT=str(databasestats[4]),
+    DATABASE_CAMPAIGN_COUNT=str(databasestats[1]),
+    DATABASE_UNIVERSE_COUNT=str(databasestats[7]),
+    DATABASE_TAG_COUNT=str(databasestats[6]),
+    DATABASE_SEARCH_LENGTH=str(databasestats[5]))
+
+    # artistcnt, campaigncnt, charactercnt, filecnt, speciescnt, srchcnt, tagcnt, universecnt, usercnt, authusrcnt

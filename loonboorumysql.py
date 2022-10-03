@@ -3,6 +3,8 @@ import os
 from enum import Enum
 from datetime import datetime, timedelta
 from collections import Counter
+
+from numpy import str_
 import booruobj
 import hashlib
 import uuid
@@ -36,6 +38,12 @@ class UseFlatException(Exception):
 class InsufficientInsertionData(Exception):
     def __init__(self):
         self.message = "There was not sufficient data for file insertion."
+        super().__init__(self.message)
+        return
+
+class DatabaseConnectionFailure(Exception):
+    def __init__(self):
+        self.message = "A database connection could not be established."
         super().__init__(self.message)
         return
 
@@ -359,6 +367,34 @@ def AddFileIDToProcessingQueue(file_uuid: str):
         return
     dbase = ConnectToDB()
     dbcs = dbase.cursor(prepared=True)
+    if CheckFileIDInProcessingQueue(file_uuid):
+        dbcs.execute("INSERT INTO `Files_ProcessingQueue`(`File_ID`) VALUES (%s);", (file_uuid,))
+        dbase.commit()
+    dbcs.close()
+    dbase.close()
+    return
+
+def RemoveFileIDFromProcessingQueue(file_uuid: str):
+    if file_uuid == None or file_uuid == "" or file_uuid.isspace() == True:
+        return
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("DELETE FROM `File_ProcessingQueue` WHERE `File_ID` = %s;", (file_uuid,))
+    dbcs.commit()
+    dbcs.close()
+    dbase.close()
+    return
+
+def CheckFileIDInProcessingQueue(file_uuid: str) -> bool:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `File_ID` FROM `File_ProcessingQueue` WHERE `File_ID` = %s LIMIT 1;")
+    out = dbcs.fetchone()
+    dbcs.close()
+    dbase.close()
+    if out != None:
+        return True
+    return False
 
 def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, display_name: str, description: str, rating: str, flat: bool=None, artistlist: list=[], characterlist: list=[], specieslist: list=[], campaignlist:list=[], universelist: list=[], tagslist: list=[]):
     file_uuid = file_uuid.strip()
@@ -898,3 +934,74 @@ def InsertNewFileIntoDatabase(file_uuid: str, user_id: str, file_ext: str, displ
     dbcs.close()
     dbase.close()
     return
+
+def CheckUserIsAdmin(user_id: str) -> bool:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared = True)
+    dbcs.execute("SELECT `User_ID` FROM `User_Admin` WHERE `User_ID` = %s LIMIT 1;", (user_id,))
+    out = dbcs.fetchone()
+    dbcs.close()
+    dbase.close()
+    if out != None:
+        return True
+    return False
+
+def AuthenticateAuthTokenAsAdmin(auth_token: str) -> bool:
+    user_id = FetchUserIDFromAuthToken(auth_token)
+    return CheckUserIsAdmin(user_id)
+
+def CleanExpiredAuthTokens(): # This function is designed to be ran as a thread, but can be executed on its own as well.
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("DELETE FROM `User_Auth` WHERE `Expiration` < %s;", (datetime.now(),))
+    dbase.commit()
+    dbcs.close()
+    dbase.close()
+    return
+
+def ForceDeleteAllAuthTokens(): # This will log out everybody. Only use me if there is a security issue.
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("TRUNCATE TABLE `User_Auth`;")
+    dbase.commit()
+    dbcs.close()
+    dbase.close()
+    return
+
+def GetDatabaseStats() -> tuple: # Fetches how many of each data type the database has.
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT COUNT(*) FROM `Files_Base`;")
+    out = dbcs.fetchone()
+    filecnt = out[0]
+    dbcs.execute("SELECT COUNT(*) FROM `Artist_Base`;")
+    out = dbcs.fetchone()
+    artistcnt = out[0]
+    dbcs.execute("SELECT COUNT(*) FROM `Campaign_Base`;")
+    out = dbcs.fetchone()
+    campaigncnt = out[0]
+    dbcs.execute("SELECT COUNT(*) FROM `Character_Base`;")
+    out = dbcs.fetchone()
+    charactercnt = out[0]
+    dbcs.execute("SELECT COUNT(*) FROM `Species_Base`;")
+    out = dbcs.fetchone()
+    speciescnt = out[0]
+    dbcs.execute("SELECT COUNT(*) FROM `Tag_Base`;")
+    out = dbcs.fetchone()
+    tagcnt = out[0]
+    dbcs.execute("SELECT COUNT(*) FROM `Universe_Base`;")
+    out = dbcs.fetchone()
+    universecnt = out[0]
+    dbcs.execute("SELECT COUNT(*) FROM `User_Base`;")
+    out = dbcs.fetchone()
+    usercnt = out[0]
+    dbcs.execute("SELECT COUNT(*) FROM `User_Auth`;")
+    out = dbcs.fetchone()
+    authusrcnt = out[0]   
+    dbcs.execute("SELECT COUNT(*) FROM `File_Search_Master`;")
+    out = dbcs.fetchone()
+    srchcnt = out[0]
+    dbcs.close()
+    dbase.close()
+    return (artistcnt, campaigncnt, charactercnt, filecnt, speciescnt, srchcnt, tagcnt, universecnt, usercnt, authusrcnt)
+

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>{{SITE_NAME}} | Administrate</title>
+    </head>
+    <body>
+        <h1>Administrator Functions</h1>
+        <hr>
+        <div>
+            <h2>Edit Data</h2>
+            <ul>
+                <li><a href="{{SITE_URL|safe}}/admin/edit_file">Edit File</a></li>
+                <li><a href="{{SITE_URL|safe}}/admin/edit_character">Edit Character</a></li>
+                <li><a href="{{SITE_URL|safe}}/admin/edit_species">Edit Species</li>
+                <li><a href="{{SITE_URL|safe}}/admin/edit_campaign">Edit Campaign</a></li>
+                <li><a href="{{SITE_URL|safe}}/admin/edit_artist">Edit Artist</a></li>
+                <li><a href="{{SITE_URL|safe}}/admin/edit_universe">Edit Universe</a></li>
+                <li><a href="{{SITE_URL|safe}}/admin/edit_tag">Edit Tag</a></li>
+                <li><a href="{{SITE_URL|safe}}/admin/edit_user">Edit User</a></li>
+            </ul>
+        </div>
+        <hr>
+        <div>
+            <h2>Site Data/Statistics</h2>
+            <h3>Python Version Information:</h3>
+            <ul>
+                <li>Current Python Version: {{CURRENT_PYTHON_VERSION}}</li>
+                <li>Current Flask Version: {{CURRENT_FLASK_VERSION}}</li>
+                <li>Current Python Image Library Version: {{CURRENT_PIL_VERSION}}</li>
+            </ul>
+            <h3>System Information:</h3>
+            <ul>
+                <li>System CPU: {{CPU_NAME}} ({{CPU_BITS}}</li> 
+                <li>System CPU Usage: {{CPU_USAGE}}</li>
+                <li>System OS: {{SYSTEM_OS_DETAILS}}</li>
+            </ul>
+            <h3>Loonbooru Information:</h3>
+            <ul>
+                <li>Loonbooru Version: {{LOONBOORU_VERSION}}</li>
+                <li>Loonbooru Memory Usage: {{LOONBOORU_MEMUSG}}</li>
+                <li>Site URL: {{SITE_URL}}</li>
+                <li>Site CDN URL: {{SITE_CDN_URL}}</li>
+                <li>Site Name: {{SITE_NAME}}</li>
+                <li>Flat Enabled: {{FLAT_ENABLED}}</li>
+                <li>Upload Directory: {{UPLOAD_DIRECTORY}}</li>
+                <li>Site File Directory: {{FILE_STORE_PATH}}</li>
+                <li>Number of Users Logged In: {{CURRENT_USER_LOGIN_COUNT}}</li>
+            </ul>
+            <h3>Loonbooru Database Information:</h3>
+            <ul>
+                <li>Files in Database: {{DATABASE_FILE_COUNT}}</li>
+                <li>Artists in Database: {{DATABASE_ARTIST_COUNT}}</li>
+                <li>Characters in Database: {{DATABASE_CHARACTER_COUNT}}</li>
+                <li>Species in Database: {{DATABASE_SPECIES_COUNT}}</li>
+                <li>Campaigns in Database: {{DATABASE_CAMPAIGN_COUNT}}</li>
+                <li>Universes in Database: {{DATABASE_UNIVERSE_COUNT}}</li>
+                <li>Tags in Database: {{DATABASE_TAG_COUNT}}</li>
+                <li>Search Database Length: {{DATABASE_SEARCH_LENGTH}}</li>
+            </ul>
+        </div>
+    </body>
+</html>
