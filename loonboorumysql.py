@@ -1062,6 +1062,44 @@ def FetchAnyFileWithCharacter(character_id: str) -> booruobj.FileBasic: # TODO: 
     dbase.close()
     return booruobj.FileBasic(out[0], out[2], None, None, None, None)
 
+def FetchAnyFileWithUniverse(universe_id: str) -> booruobj.FileBasic: # TODO: This sucks, make it work better with parameters and shit (ideally try to show SFW and something with browse_view allowed.)
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `File_ID` FROM `Files_Universe` WHERE `Universe_ID` = %s LIMIT 1;", (universe_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    dbcs.execute("SELECT * FROM `Files_Base` WHERE `File_ID` = %s LIMIT 1;", (out[0],))
+    out = dbcs.fetchone()
+    if out == None: # TODO: Make this less terrible.
+        dbcs.close()
+        dbase.close()
+        return None
+    dbcs.close()
+    dbase.close()
+    return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+
+def FetchAnyFileWithCampaign(campaign_id: str) -> booruobj.FileBasic: # TODO: This sucks, make it work better with parameters and shit (ideally try to show SFW and something with browse_view allowed.)
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `File_ID` FROM `Files_Campaign` WHERE `Campaign_ID` = %s LIMIT 1;", (campaign_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    dbcs.execute("SELECT * FROM `Files_Base` WHERE `File_ID` = %s LIMIT 1;", (out[0],))
+    out = dbcs.fetchone()
+    if out == None: # TODO: Make this less terrible.
+        dbcs.close()
+        dbase.close()
+        return None
+    dbcs.close()
+    dbase.close()
+    return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+
 def FetchAnyFileWithSpecies(species_id: str) -> booruobj.FileBasic: # TODO: This sucks, make it work better with parameters and shit (ideally try to show SFW and something with browse_view allowed.)
     dbase = ConnectToDB()
     dbcs = dbase.cursor(prepared=True)
@@ -1126,3 +1164,47 @@ def GetSpecies(species_id: str) -> booruobj.Species:
     dbcs.close()
     dbase.close()
     return booruobj.Species(species_id, speciesname, speciesnameproper, universelist)
+
+def GetUniverse(universe_id: str) -> booruobj.Universe:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor()
+    dbcs.execute("SELECT `Universe_Name`, `Universe_Name_Proper` FROM `Universe_Base` WHERE `Universe_ID` = %s LIMIT 1;", (universe_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    universename = out[0]
+    universenameproper = out[1]
+    dbcs.execute("SELECT `User_ID` FROM `Universe_Owner` WHERE `Universe_ID` = %s;", (universe_id,))
+    out = dbcs.fetchall()
+    ownerlist = []
+    for i in out:
+        dbcs.execute("SELECT `Username`, `Username_Proper`, `Join_Datetime` FROM `User_Base` WHERE `User_ID` = %s LIMIT 1;", (i[0],))
+        ownrout = dbcs.fetchone()
+        ownerlist.append(booruobj.User(i[0], ownrout[0], ownrout[1], ownrout[2]))
+    dbcs.close()
+    dbase.close()
+    return booruobj.Universe(universe_id, universename, universenameproper, ownerlist)
+
+def GetCampaign(campaign_id: str) -> booruobj.Campaign:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor()
+    dbcs.execute("SELECT `Campaign_Name`, `Campaign_Name_Proper` FROM `Campaign_Base` WHERE `Campaign_ID` = %s LIMIT 1;", (campaign_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    campaignname = out[0]
+    campaignnameproper = out[1]
+    dbcs.execute("SELECT `User_ID` FROM `Campaign_Owner` WHERE `Campaign_ID` = %s;", (campaign_id,))
+    out = dbcs.fetchall()
+    ownerlist = []
+    for i in out:
+        dbcs.execute("SELECT `Username`, `Username_Proper`, `Join_Datetime` FROM `User_Base` WHERE `User_ID` = %s LIMIT 1;", (i[0],))
+        ownrout = dbcs.fetchone()
+        ownerlist.append(booruobj.User(i[0], ownrout[0], ownrout[1], ownrout[2]))
+    dbcs.close()
+    dbase.close()
+    return booruobj.Campaign(campaign_id, campaignname, campaignnameproper, ownerlist)

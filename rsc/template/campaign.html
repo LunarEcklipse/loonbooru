@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/browse.css') }}">
+        <title>{{SITE_NAME}} | Campaign | {{CAMPAIGN_NAME}}</title>
+    </head>
+    <body class="background">
+        <header>
+            {{LOGIN_INFO|safe}}
+            <hr class="headerborder">
+        </header>
+        <div class="charactertop">
+            <div class="characterheadimgdiv">
+                <img class="characterheadimg" src={{FILE_PATH}}>
+            </div> 
+            <div class="characterinfodiv">
+                <div class="characterinfoinnerdiv">
+                    <h1 class="characterheadertxt">{{CAMPAIGN_NAME}}</h1>
+                </div>
+                <div class="characterinfoinnderdiv">  
+                    <hr class="headerborder">
+                </div>
+                <div class="characterinfoinnderdiv">
+                    <h3 class="characterheadertxt">{{CAMPAIGN_OWNERS|safe}}</h3>
+                </div>
+            </div>
+        </div>
+        <hr class="headerborder">
+        <div class="outerdiv">
+            <div class="innerdiv">
+                {{IMAGEPAGEINSERT|safe}}
+            </div>
+        </div>
+        {{NAVBUTTONINSERT|safe}}
+    </body>
+</html>

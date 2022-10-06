@@ -91,7 +91,7 @@ class User():
             return (self.UserID == other.UserID)
         return False
 
-class Campaign():
+class Campaign(): # TODO: Add universe support.
     def __init__(self, campaign_id: str, campaign_name: str, campaign_name_proper: str, campaign_owner: list):
         self.CampaignID = campaign_id
         self.CampaignName = campaign_name
