@@ -11,7 +11,9 @@ class TagBasic(): #TODO: Finish me!
         pass
 
     def __eq__(self, other):
-        return (self.TagID == other.TagID)
+        if type(other) is TagBasic:
+            return (self.TagID == other.TagID)
+        return False
 
 class Artist():
     def __init__(self, artist_id: str, user_id: str, artist_name: str, artist_name_proper: str):
@@ -22,7 +24,9 @@ class Artist():
         return
     
     def __eq__(self, other):
-        return (self.ArtistID == other.ArtistID)
+        if type(other) is Artist:
+            return (self.ArtistID == other.ArtistID)
+        return False
 
 class Character():
     class CharacterAlias():
@@ -41,14 +45,12 @@ class Character():
         return
     
     def __eq__(self, other):
-        try:
+        if type(other) is Character:
             return (self.CharacterID == other.CharacterID)
-        except AttributeError as exception:
-            return False
         return False
 
 class Species():
-    def __init__(self, species_id: str, species_name: str, species_name_proper: str, species_universe: list):
+    def __init__(self, species_id: str, species_name: str, species_name_proper: str, species_universe: list): # TODO: Reformat code to accept species aliases as a list kind of like characters.
         self.SpeciesID = species_id
         self.SpeciesName = species_name
         self.SpeciesNameProper = species_name_proper
@@ -56,7 +58,9 @@ class Species():
         return
     
     def __eq__(self, other):
-        return (self.SpeciesID == other.SpeciesID)
+        if type(other) is Species:
+            return (self.SpeciesID == other.SpeciesID)
+        return False
 
 class Universe():
     def __init__(self, universe_id: str, universe_name: str, universe_name_proper: str, universe_owner: list):
@@ -67,7 +71,9 @@ class Universe():
         return
 
     def __eq__(self, other):
-        return (self.UniverseID == other.UniverseID)
+        if type(other) is Universe:
+            return (self.UniverseID == other.UniverseID)
+        return False
 
 class User():
     def __init__(self, user_id: str, username: str, username_proper: str, join_datetime: datetime):
@@ -81,7 +87,9 @@ class User():
         return
 
     def __eq__(self, other):
-        return (self.UserID == other.UserID)
+        if type(other) is User:
+            return (self.UserID == other.UserID)
+        return False
 
 class Campaign():
     def __init__(self, campaign_id: str, campaign_name: str, campaign_name_proper: str, campaign_owner: list):
@@ -92,7 +100,9 @@ class Campaign():
         return
 
     def __eq__(self, other):
-        return (self.CampaignID == other.CampaignID)
+        if type(other) is Campaign:
+            return (self.CampaignID == other.CampaignID)
+        return False
 
 class FileBasic(): # FileBasic only contains the information needed to display the file on a browse page. FileDetail contains more information.
     def __init__(self, file_id: str, file_ext: str, upload_datetime: datetime, file_rating: str, display_browse: int, display_search: int):

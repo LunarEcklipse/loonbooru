@@ -169,3 +169,14 @@ vertical-align:middle;
 {
     width:100%;
 }
+
+.userinfoheaderdiv
+{
+    width:100%;
+    text-align:center;
+}
+
+.userheadimg
+{
+    max-height:512px;
+}

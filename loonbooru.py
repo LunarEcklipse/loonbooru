@@ -84,15 +84,18 @@ def GetFlaskVersion() -> str:
 # THE CODE FOR SPACE IS %20
 # THE CODE FOR COMMA IS %2C
 
-def GenerateBrowseThumbnail(filename: str, browsepage: int, maxfiles: int) -> str: #TODO: UPDATE TO SUPPORT 64px and 256px thumbnails!
+def GenerateBrowseThumbnail(filename: str, browsepage: int, maxfiles: int, browsetype:str="browse", browsepagespecial:str=None) -> str: #TODO: UPDATE TO SUPPORT 64px and 256px thumbnails!
+    browsepage = str(browsepage)
     file = (os.path.splitext(filename))
     file_ext = file[1]
     if file[1] == ".gif":
         file_ext = ".png"
     ### RETURN BELOW FOR DEEZ NUTS ###
     # return f"<div class=\"imgholder\" onclick=\"location.href='{site_url_name}/view/{file[0]}?browsepage={str(browsepage)}&maxfiles={str(maxfiles)}';\" style=\"overflow:hidden; cursor:pointer; min-width:128px; min-height:128px; width:20%; height:20%; max-width: 128px; max-height: 128px; border-style: solid; border-color: #c7ae40; overflow: hidden; border-radius:10px; display:inline-block; align-items: center;\"><div style=\"width: 100%; height: 100%; display:flex; justify-content: center; align-items: center;\"><img style = \"height: 128px; display:block; margin:auto; vertical-align:middle;\" src=\"https://cdn.dev.lunarecklipse.ca/dz.png\"></div></div>\n"
-    return f"<div class=\"imgholder\" onclick=\"location.href='{site_url_name}/view/{file[0]}?browsepage={str(browsepage)}&maxfiles={str(maxfiles)}';\"><div class=\"imgholderinner\"><img class=\"tileimg\" src=\"{cdn_url}/thumb/128/{file[0]}{file_ext}\"></div></div>\n"
-
+    if browsetype == "browse":
+        return f"<div class=\"imgholder\" onclick=\"location.href='{site_url_name}/view/{file[0]}?browsetype={browsetype}&browsepage={str(browsepage)}&maxfiles={str(maxfiles)}';\"><div class=\"imgholderinner\"><img class=\"tileimg\" src=\"{cdn_url}/thumb/128/{file[0]}{file_ext}\"></div></div>\n"
+    return f"<div class=\"imgholder\" onclick=\"location.href='{site_url_name}/view/{file[0]}?browsetype={browsetype}&browsepage={str(browsepage)}&maxfiles={str(maxfiles)}&browsepagespecial={str(browsepagespecial)}';\"><div class=\"imgholderinner\"><img class=\"tileimg\" src=\"{cdn_url}/thumb/128/{file[0]}{file_ext}\"></div></div>\n"
+    
 def GenerateBrowseThumbnailKChan(filepath: str, filename: str, display_name: str, browsepage: int, maxfiles: int) -> str:
     file = (os.path.splitext(filename))
     file_ext = file[1]
@@ -274,7 +277,7 @@ def browse(page):
         try:
             filepath = filestorepathfull + "/" + str(i.FileID) + "." + i.FileEXT
             with Image.open(filepath) as f:
-                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles)
+                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles, browsetype="browse")
         except FileNotFoundError as exception:
             endoffiles = True
             break
@@ -319,16 +322,25 @@ def viewpage(page):
     browsepage = "1"
     if "browsepage" in arg:
         browsepage = arg["browsepage"]
+    browsepagespecial = None
+    if "browsepagespecial" in arg:
+        browsepagespecial = arg["browsepagespecial"]
     tags = ""
     if "tags" in arg:
         tags = arg["tags"]
     if ValidateAge(session) == False:
-        return redirect(f"{site_url_name}/agecheck?dest=view&page={str(page)}&browsetype={browsetype}&browsepage={browsepage}&maxfiles={maxfiles}&tags={tags}")
+        if browsepagespecial == None:
+            return redirect(f"{site_url_name}/agecheck?dest=view&page={str(page)}&browsetype={browsetype}&browsepage={browsepage}&maxfiles={maxfiles}&tags={tags}")
+        return redirect(f"{site_url_name}/agecheck?dest=view&page={str(page)}&browsetype={browsetype}&browsepage={browsepage}&maxfiles={maxfiles}&tags={tags}&browsepagespecial={browsepagespecial}")
     try:
         page = str(page)
     except ValueError as exception:
         abort(404)
-    backbtnlink = f"{site_url_name}/{browsetype}/{browsepage}?maxfiles={maxfiles}&tags={tags}"
+    backbtnlink = ""
+    if browsetype == "browse":
+        backbtnlink = f"{site_url_name}/{browsetype}/{browsepage}?maxfiles={maxfiles}&tags={tags}"
+    else:
+        backbtnlink = f"{site_url_name}/{browsetype}/{browsepagespecial}?page={browsepage}&maxfiles={maxfiles}"
     file = loonboorumysql.FetchFileDetail(page)
     if file == None:
         abort(404)
@@ -336,7 +348,7 @@ def viewpage(page):
     if file.Tags != None:
         file.Tags.sort(key=lambda lm: lm.TagName)
         for i in file.Tags:
-            tagprint += i.TagName + ", "
+            tagprint += html.escape(i.TagName) + ", "
     if tagprint == "":
         tagprint = "No tags found."
     else:
@@ -346,7 +358,8 @@ def viewpage(page):
         file.Artists.sort(key=lambda lm: lm.ArtistName)
         artistprnt = ""
         for i in file.Artists:
-            artistprnt += f"{i.ArtistNameProper}, "
+            artistname = html.escape(i.ArtistNameProper)
+            artistprnt += f"{artistname}, "
         artistprnt = artistprnt[:-2]
         print(artistprnt)
     charprnt = ""
@@ -370,11 +383,13 @@ def viewpage(page):
                     for j in range(numtoremove):
                         templs.remove(i)
             for i in templs:
-                charprnt += i.CharacterNameProper
+                charname = html.escape(i.CharacterNameProper)
+                charprnt += f"<a class=\"headertxt\" href=\"{site_url_name}/character/{i.CharacterID}?maxfiles={str(maxfiles)}&page=1\">{charname}</a>" # TODO: Continue here
                 if i.CharacterOwner != None and len(i.CharacterOwner) != 0:
                     charprnt += " ("
                     for j in i.CharacterOwner:
-                        charprnt += f"{j.UsernameProper}, "
+                        characterusername = html.escape(j.UsernameProper)
+                        charprnt += f"<a class=\"headertxt\" href=\"{site_url_name}/user/{j.UserID}?maxfiles={str(maxfiles)}&page=1\">{characterusername}</a>, "
                     charprnt = charprnt[:-2]
                     charprnt += "), "
             charprnt = charprnt[:-2]
@@ -385,7 +400,8 @@ def viewpage(page):
         specprnt = "<p class=\"abouttxt\">Species: "
         file.Species.sort(key=lambda lm: lm.SpeciesName)
         for i in file.Species:
-            specprnt += i.SpeciesNameProper + ", "
+            specnameinsert = html.escape(i.SpeciesNameProper)
+            specprnt += f"<a class=\"headertxt\" href=\"{site_url_name}/species/{i.SpeciesID}?maxfiles={str(maxfiles)}&page=1\">{specnameinsert}</a>, "
             # if i.SpeciesUniverse != None and len(i.SpeciesUniverse) != 0: # Leaving this code in because I wrote it, but otherwise I'm commenting it out after feedback.
             #     specprnt += " ("
             #     for j in i.SpeciesUniverse:
@@ -404,11 +420,13 @@ def viewpage(page):
             campprnt += "Campaigns: "
         file.Campaigns.sort(key=lambda lm: lm.CampaignName)
         for i in file.Campaigns:
-            campprnt += i.CampaignNameProper
+            campnameinsert = html.escape(i.CampaignNameProper)
+            campprnt += campnameinsert
             if i.CampaignOwner != None and len(i.CampaignOwner) != 0:
                 campprnt += " ("
                 for j in i.CampaignOwner:
-                    campprnt += f"{j.UsernameProper}, "
+                    campnameinsert = html.escape(j.UsernameProper)
+                    campprnt += f"<a class=\"headertxt\" href=\"{site_url_name}/user/{j.UserID}?maxfiles={str(maxfiles)}&page=1\">{campnameinsert}</a>, "
                 campprnt = campprnt[:-2]
                 campprnt += ")"
             campprnt += ", "
@@ -423,11 +441,13 @@ def viewpage(page):
             uniprnt += "Universes: "
         file.Universes.sort(key=lambda lm: lm.UniverseName)
         for i in file.Universes:
-            uniprnt += i.UniverseNameProper
+            uninameinsert = html.escape(i.UniverseNameProper)
+            uniprnt += uninameinsert
             if i.UniverseOwner != None and len(i.UniverseOwner) != 0:
                 uniprnt += " ("
                 for j in i.UniverseOwner:
-                    uniprnt += f"{j.UsernameProper}, "
+                    uninameinsert = html.escape(j.UsernameProper)
+                    uniprnt += f"<a class=\"headertxt\" href=\"{site_url_name}/user/{j.UserID}?maxfiles={str(maxfiles)}&page=1\">{uninameinsert}</a>, "
                 uniprnt = uniprnt[:-2]
                 uniprnt += ")"
             uniprnt += ", "
@@ -477,6 +497,90 @@ def searchpage():
         username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
         loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=search&page={page}&maxfiles={maxfiles}&tags={tags}\">Log Out.</a></p>"
     return render_template("search.html", SITE_NAME=site_name, LOGIN_INFO=loginstr)
+
+@app.route("/user/<user_id>") # TODO: Continue with these for each category type
+def usersearch(user_id: str):
+    arg = request.args.to_dict()
+    maxfiles="25"
+    if "maxfiles" in arg:
+        try:
+            maxfiles = int(arg["maxfiles"])
+        except ValueError as exception:
+            maxfiles = 25
+        if maxfiles == 0:
+            maxfiles = 1
+        elif maxfiles < 0:
+            maxfiles = maxfiles / -1
+        elif maxfiles > 100:
+            maxfiles = 100
+    maxfiles=int(maxfiles)
+    page="1"
+    if "page" in arg:
+        page = arg["page"]
+    page=int(page)
+    if page < 1:
+        page = 1
+
+    if user_id == None:
+        abort(400)
+    if ValidateAge(session) == False:
+        return redirect(f"{site_url_name}/agecheck?dest=user&page={user_id}&maxfiles={str(maxfiles)}")
+    searchuser = loonboorumysql.FetchUserByUserID(user_id)
+    if searchuser == None:
+        abort(404)
+    userfile = loonboorumysql.FetchAnyFileByUser(user_id)
+    fileid = "nofilefound"
+    fileext = "png"
+    if userfile != None:
+        fileid = userfile.FileID
+        fileext = userfile.FileEXT
+    
+    # TODO: List owned characters, campaigns, universes, etc here!
+
+    endoffiles = False
+    browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), [f"uploaderid:{str(user_id)}"])
+    browselist = browselisttpl[0]
+    nextpgexists = browselisttpl[1]
+    startbreak = 0
+    linebreak = 5
+    imginsert = ""
+    for i in browselist:
+        try:
+            filepath = filestorepathfull + "/" + str(i.FileID) + "." + i.FileEXT
+            with Image.open(filepath) as f:
+                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles, "user", user_id)
+        except FileNotFoundError as exception:
+            endoffiles = True
+            break
+        startbreak += 1
+        if startbreak == linebreak:
+            imginsert += "<br>"
+            linebreak += 5
+    print(imginsert)
+    if len(browselist) == 0:
+        imginsert = "<p class=\"noimgtxt\">Sorry, seems there's nothing here!</p>"
+    navinsert = "<hr style=\"border: solid 1px #c7ae40;\"><div style=\"text-align:center\">"
+    nobtn = True
+    if len(browselist) < maxfiles:
+        endoffiles = True
+    if nextpgexists == False:
+        endoffiles = True
+    if page != 1:
+        nobtn = False
+        prevpg = (int(page)) - 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/user/{user_id}?maxfiles={str(maxfiles)}&page={str(prevpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">←</p></div>"
+    if endoffiles == False:
+        nobtn = False
+        nextpg = (int(page)) + 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/user/{user_id}?maxfiles={str(maxfiles)}?maxfiles={str(maxfiles)}&page={str(nextpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">→</p></div>"
+    navinsert += "</div>"
+    if nobtn:
+        navinsert = ""
+    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=user&page={page}&maxfiles={maxfiles}\">Log in.</a></p>"
+    if AuthenticateUserAuth(session) == True:
+        loginusername = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
+        loginstr = f"<p class=\"headertxt\">Logged in as {loginusername}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=user&page={user_id}&maxfiles={maxfiles}\">Log Out.</a></p>"
+    return render_template("user.html", SITE_NAME=site_name, USER_NAME=searchuser.UsernameProper, FILE_PATH=f"{cdn_url}/full/{fileid}.{fileext}", LOGIN_INFO=loginstr, IMAGEPAGEINSERT=imginsert, NAVBUTTONINSERT=navinsert) # TODO: Finish and test this
 
 @app.route("/character/<character_id>") # TODO: Continue with these for each category type
 def charactersearch(character_id):
@@ -542,12 +646,11 @@ def charactersearch(character_id):
     startbreak = 0
     linebreak = 5
     imginsert = ""
-    print(browselist)
     for i in browselist:
         try:
             filepath = filestorepathfull + "/" + str(i.FileID) + "." + i.FileEXT
             with Image.open(filepath) as f:
-                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles)
+                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles, "character", character_id)
         except FileNotFoundError as exception:
             endoffiles = True
             break
@@ -555,7 +658,6 @@ def charactersearch(character_id):
         if startbreak == linebreak:
             imginsert += "<br>"
             linebreak += 5
-    print(imginsert)
     if len(browselist) == 0:
         imginsert = "<p class=\"noimgtxt\">Sorry, seems there's nothing here!</p>"
     navinsert = "<hr style=\"border: solid 1px #c7ae40;\"><div style=\"text-align:center\">"
@@ -580,6 +682,99 @@ def charactersearch(character_id):
         username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
         loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=character&page={character_id}&maxfiles={maxfiles}\">Log Out.</a></p>"
     return render_template("character.html", SITE_NAME=site_name, CHARACTER_NAME=character.CharacterNameProper, FILE_PATH=f"{cdn_url}/full/{fileid}.{fileext}", CHARACTER_SPECIES=characterspecstr, CHARACTER_OWNER=characterownrstr, LOGIN_INFO=loginstr, IMAGEPAGEINSERT=imginsert, NAVBUTTONINSERT=navinsert) # TODO: Finish and test this
+
+@app.route("/species/<species_id>") # TODO: Continue with these for each category type
+def speciessearch(species_id):
+    arg = request.args.to_dict()
+    maxfiles="25"
+    if "maxfiles" in arg:
+        try:
+            maxfiles = int(arg["maxfiles"])
+        except ValueError as exception:
+            maxfiles = 25
+        if maxfiles == 0:
+            maxfiles = 1
+        elif maxfiles < 0:
+            maxfiles = maxfiles / -1
+        elif maxfiles > 100:
+            maxfiles = 100
+    maxfiles=int(maxfiles)
+    page="1"
+    if "page" in arg:
+        page = arg["page"]
+    page=int(page)
+    if page < 1:
+        page = 1
+
+    if species_id == None:
+        abort(400)
+    if ValidateAge(session) == False:
+        return redirect(f"{site_url_name}/agecheck?dest=species&page={species_id}&maxfiles={str(maxfiles)}")
+    species = loonboorumysql.GetSpecies(species_id)
+    if species == None:
+        abort(404)
+    speciesfile = loonboorumysql.FetchAnyFileWithSpecies(species_id)
+    fileid = "nofilefound"
+    fileext = "png"
+    if speciesfile != None:
+        fileid = speciesfile.FileID
+        fileext = speciesfile.FileEXT
+    specuniversestr = ""
+    for i in species.SpeciesUniverse:
+        specuniversestr += i.UniverseProper + ", "
+    if specuniversestr == "":
+        specuniversestr = "None"
+    else:
+        specuniversestr = specuniversestr[:-2]
+    specuniverseleadin = "Species Universe:"
+    if len(species.SpeciesUniverse) > 1:
+        specuniverseleadin = "Species Universes:"
+    specuniversestr = html.escape(f"{specuniverseleadin} {specuniversestr}")
+
+    endoffiles = False
+    browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), [f"speciesid:{str(species_id)}"])
+    browselist = browselisttpl[0]
+    print(type(browselist))
+    nextpgexists = browselisttpl[1]
+    startbreak = 0
+    linebreak = 5
+    imginsert = ""
+    for i in browselist:
+        try:
+            filepath = filestorepathfull + "/" + str(i.FileID) + "." + i.FileEXT
+            with Image.open(filepath) as f:
+                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles, "species", species_id)
+        except FileNotFoundError as exception:
+            endoffiles = True
+            break
+        startbreak += 1
+        if startbreak == linebreak:
+            imginsert += "<br>"
+            linebreak += 5
+    if len(browselist) == 0:
+        imginsert = "<p class=\"noimgtxt\">Sorry, seems there's nothing here!</p>"
+    navinsert = "<hr style=\"border: solid 1px #c7ae40;\"><div style=\"text-align:center\">"
+    nobtn = True
+    if len(browselist) < maxfiles:
+        endoffiles = True
+    if nextpgexists == False:
+        endoffiles = True
+    if page != 1:
+        nobtn = False
+        prevpg = (int(page)) - 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/character/{species_id}?maxfiles={str(maxfiles)}&page={str(prevpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">←</p></div>"
+    if endoffiles == False:
+        nobtn = False
+        nextpg = (int(page)) + 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/character/{species_id}?maxfiles={str(maxfiles)}?maxfiles={str(maxfiles)}&page={str(nextpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">→</p></div>"
+    navinsert += "</div>"
+    if nobtn:
+        navinsert = ""
+    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=character&page={page}&maxfiles={maxfiles}\">Log in.</a></p>"
+    if AuthenticateUserAuth(session) == True:
+        username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
+        loginstr = f"<p class=\"headertxt\">Logged in as {html.escape(username)}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=species&page={species_id}&maxfiles={maxfiles}\">Log Out.</a></p>"
+    return render_template("species.html", SITE_NAME=site_name, SPECIES_NAME=species.SpeciesNameProper, FILE_PATH=f"{cdn_url}/full/{fileid}.{fileext}", LOGIN_INFO=loginstr, SPECIES_UNIVERSES=specuniversestr, IMAGEPAGEINSERT=imginsert, NAVBUTTONINSERT=navinsert) # TODO: Finish and test this
 
 def hash_string(inStr): # Creates a string hash for use
     hash_obj = hashlib.sha256(inStr.encode('utf-8'))

@@ -1061,3 +1061,68 @@ def FetchAnyFileWithCharacter(character_id: str) -> booruobj.FileBasic: # TODO: 
     dbcs.close()
     dbase.close()
     return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+
+def FetchAnyFileWithSpecies(species_id: str) -> booruobj.FileBasic: # TODO: This sucks, make it work better with parameters and shit (ideally try to show SFW and something with browse_view allowed.)
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `File_ID` FROM `Files_Species` WHERE `Species_ID` = %s LIMIT 1;", (species_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    dbcs.execute("SELECT * FROM `Files_Base` WHERE `File_ID` = %s LIMIT 1;", (out[0],))
+    out = dbcs.fetchone()
+    if out == None: # TODO: Make this less terrible.
+        dbcs.close()
+        dbase.close()
+        return None
+    dbcs.close()
+    dbase.close()
+    return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+
+def FetchAnyFileByUser(user_id: str) -> booruobj.FileBasic:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT * FROM `Files_Base` WHERE `User_ID` = %s LIMIT 1;", (user_id,))
+    out = dbcs.fetchone()
+    dbcs.close()
+    dbase.close()
+    if out == None: 
+        return None
+    return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+
+def FetchUserByUserID(user_id: str) -> booruobj.User:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `Username`, `Username_Proper`, `Join_Datetime` FROM `User_Base` WHERE `User_ID` = %s LIMIT 1;", (user_id,))
+    out = dbcs.fetchone()
+    dbcs.close()
+    dbase.close()
+    if out == None:
+        return None
+    return booruobj.User(user_id, out[0], out[1], out[2])
+
+def GetSpecies(species_id: str) -> booruobj.Species:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `Species_Name`, `Species_Name_Proper` FROM `Species_Base` WHERE `Species_ID` = %s LIMIT 1;", (species_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    speciesname = out[0]
+    speciesnameproper = out[1]
+    dbcs.execute("SELECT `Universe_ID` FROM `Species_Universe` WHERE `Species_ID` = %s;", (species_id,))
+    out = dbcs.fetchall()
+    universelist = []
+    for i in out:
+        dbcs.execute("SELECT `Universe_Name`, `Universe_Name_Proper` FROM `Universe_Base` WHERE `Universe_ID` = %s LIMIT 1;", (i[0],))
+        uniout = dbcs.fetchone()
+        if uniout == None:
+            continue
+        universelist.append(booruobj.Universe(i[0], uniout[0], uniout[1], None))
+    dbcs.close()
+    dbase.close()
+    return booruobj.Species(species_id, speciesname, speciesnameproper, universelist)
