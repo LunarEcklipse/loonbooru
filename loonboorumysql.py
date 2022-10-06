@@ -10,6 +10,9 @@ import hashlib
 import uuid
 import json
 
+if __name__ == "__main__":
+    print("Hi, I don't run on my own. Please run \"wsgi.py\" instead.")
+
 absPath = os.path.abspath(__file__) # This little chunk makes sure the working directory is correct.
 dname = os.path.dirname(absPath)
 os.chdir(dname)
@@ -126,7 +129,10 @@ def GetFileList(numPerPage: int, pageNum: int, tags=None) -> tuple: #TODO: Finis
             inc += 1
         tuplelist = []
         for i in tags:
-            tuplelist.append(i.Tag)
+            if type(i) is str: # This is a safety feature, but use TagType if you can.
+                tuplelist.append(i)
+            elif type(i) is booruobj.TagType:
+                tuplelist.append(i.Tag)
         tuplelist.append(len(tags))
         tuplelist.append(fileOffset)
         tuplelist.append(numPerPage)
@@ -1005,3 +1011,53 @@ def GetDatabaseStats() -> tuple: # Fetches how many of each data type the databa
     dbase.close()
     return (artistcnt, campaigncnt, charactercnt, filecnt, speciescnt, srchcnt, tagcnt, universecnt, usercnt, authusrcnt)
 
+def GetCharacter(character_id: str) -> booruobj.Character:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT * FROM `Character_Base` WHERE `Character_ID` = %s LIMIT 1;", (character_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    character_name = out[1]
+    character_name_proper = out[2]
+    dbcs.execute("SELECT `Character_Alias`, `Character_Alias_Proper` FROM `Character_Alias` WHERE `Character_ID` = %s;", (character_id,))
+    out = dbcs.fetchall()
+    characteraliaslist = []
+    for i in out:
+        characteraliaslist.append(booruobj.Character.CharacterAlias(i[0], i[1]))
+    dbcs.execute("SELECT `User_ID`, `Username`, `Username_Proper` FROM `Character_Owner` WHERE `Character_ID` = %s;", (character_id,))
+    out = dbcs.fetchall()
+    userlist = []
+    for i in out:
+        userlist.append(booruobj.User(i[0], i[1], i[2], None))
+    dbcs.execute("SELECT `Species_ID` FROM `Character_Species` WHERE `Character_ID` = %s;", (character_id,))
+    out = dbcs.fetchall()
+    specieslist = []
+    for i in out:
+        dbcs.execute("SELECT `Species_Name`, `Species_Name_Proper` FROM `Species_Base` WHERE `Species_ID` = %s LIMIT 1;", (i[0],))
+        specout = dbcs.fetchone()
+        specieslist.append(booruobj.Species(i[0], specout[0], specout[1], None))
+    dbcs.close()
+    dbase.close()
+    return booruobj.Character(character_id, character_name, character_name_proper, specieslist, characteraliaslist, userlist)
+
+def FetchAnyFileWithCharacter(character_id: str) -> booruobj.FileBasic: # TODO: This sucks, make it work better with parameters and shit (ideally try to show SFW and something with browse_view allowed.)
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `File_ID` FROM `Files_Characters` WHERE `Character_ID` = %s LIMIT 1;", (character_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    dbcs.execute("SELECT * FROM `Files_Base` WHERE `File_ID` = %s LIMIT 1;", (out[0],))
+    out = dbcs.fetchone()
+    if out == None: # TODO: Make this less terrible.
+        dbcs.close()
+        dbase.close()
+        return None
+    dbcs.close()
+    dbase.close()
+    return booruobj.FileBasic(out[0], out[2], None, None, None, None)

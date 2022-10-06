@@ -1,5 +1,8 @@
 from datetime import datetime
 
+if __name__ == "__main__":
+    print("Hi, I don't run on my own. Please run \"wsgi.py\" instead.")
+
 class TagBasic(): #TODO: Finish me!
     def __init__(self, tag_id: str, tagname: str, tagnameproper: str):
         self.TagID = tag_id
@@ -22,16 +25,27 @@ class Artist():
         return (self.ArtistID == other.ArtistID)
 
 class Character():
+    class CharacterAlias():
+        def __init__(self, character_alias: str, character_alias_proper: str):
+            self.CharacterAlias = character_alias
+            self.CharacterAliasProper = character_alias_proper
+            return
+    
     def __init__(self, character_id: str, character_name: str, character_name_proper: str, character_species: list, character_alias: list, character_owner: list):
         self.CharacterID = character_id
         self.CharacterName = character_name
         self.CharacterNameProper = character_name_proper
         self.CharacterSpecies = character_species
+        self.CharacterAliasList = character_alias
         self.CharacterOwner = character_owner
         return
     
     def __eq__(self, other):
-        return (self.CharacterID == other.CharacterID)
+        try:
+            return (self.CharacterID == other.CharacterID)
+        except AttributeError as exception:
+            return False
+        return False
 
 class Species():
     def __init__(self, species_id: str, species_name: str, species_name_proper: str, species_universe: list):
@@ -125,4 +139,42 @@ class FileDetail(FileBasic): #TODO: ADD UPLOADER ID AND TAGS!
         self.Campaigns = campaignlist
         self.Universes = universelist
         self.Tags = tagslist
+        return
+
+class TagType(): # TODO: Move me to booruobj when you can. Remember to update definitions in loonboorumysql.
+    def __init__(self, tag: str):
+        self.Tag = tag.lower()
+        self.SpecialTagTerm = None 
+        self.TagType = "Tag"
+        if tag.find(':') != -1:
+            if tag.lower().find('artist') != -1:
+                self.TagType = "Artist"
+                try:
+                    self.SpecialTagTerm = tag.lower().split(':')[1]
+                except IndexError as exception:
+                    self.SpecialTagTerm = None
+            elif tag.lower().find('rating') != -1:
+                self.TagType = "Rating"
+                try:
+                    self.SpecialTagTerm = tag.lower().split(':')[1]
+                except IndexError as exception:
+                    self.SpecialTagTerm = None
+            elif tag.lower().find('internal_id') != -1 or tag.lower().find('internalid') != -1:
+                self.TagType = "Internal_ID"
+                try:
+                    self.SpecialTagTerm = tag.lower().split(':')[1]
+                except IndexError as exception:
+                    self.SpecialTagTerm = None
+            elif tag.lower().find('file_ext') != -1 or tag.lower().find('fileext') != -1 or tag.lower().find('filext') != -1:
+                self.TagType = "File_EXT"
+                try:
+                    self.SpecialTagTerm = tag.lower().split(':')[1]
+                except IndexError as Exception:
+                    self.SpecialTagTerm = None
+            elif tag.lower().find('display_name') != -1 or tag.lower().find('displayname') != -1:
+                self.TagType = "Display_Name"
+                try:
+                    self.SpecialTagTerm = tag.lower().split(':')[1]
+                except IndexError as exception:
+                    self.SpecialTagTerm = None
         return

@@ -21,6 +21,10 @@ import html
 
 loonbooru_version = "0.4.4"
 
+if __name__ == "__main__":
+    print("Hi, I don't run on my own. Please run \"wsgi.py\" instead.")
+    sys.exit()
+
 ### FLAGS ###
 
 absPath = os.path.abspath(__file__) # This little chunk makes sure the working directory is correct.
@@ -43,27 +47,31 @@ use_flat_tag = flags["useflat"] # Hi Umbreon
 upload_allowed_extensions = {'jpg', 'png', 'gif', 'jpeg'}
 filesavepath = f"{upload_directory}/../tempprocessed"
 fileparampath = f"{upload_directory}/../params"
-
 # TODO: Make a task scheduling thread here!
 
-deadprocessingfilelist = [f for f in os.listdir(filesavepath) if os.path.isfile(os.path.join(filesavepath, f))] # TODO: This is super lazy and could be condensed a lot better. Also likely to become unused later on.
-for i in deadprocessingfilelist:
-    try:
-        os.remove(os.path.join(filesavepath, i))
-    except FileNotFoundError as exception:
-        pass
-deadprocessingfilelist = [f for f in os.listdir(fileparampath) if os.path.isfile(os.path.join(fileparampath, f))]
-for i in deadprocessingfilelist:
-    try:
-        os.remove(os.path.join(fileparampath, i))
-    except FileNotFoundError as exception:
-        pass
-deadprocessingfilelist = [f for f in os.listdir(upload_directory) if os.path.isfile(os.path.join(upload_directory, f))]
-for i in deadprocessingfilelist:
-    try:
-        os.remove(os.path.join(upload_directory, i))
-    except FileNotFoundError as exception:
-        pass
+def RemoveDeadFileProcesses():
+    deadprocessingfilelist = [f for f in os.listdir(filesavepath) if os.path.isfile(os.path.join(filesavepath, f))] # TODO: This is super lazy and could be condensed a lot better. Also likely to become unused later on.
+    for i in deadprocessingfilelist:
+        try:
+            os.remove(os.path.join(filesavepath, i))
+        except FileNotFoundError as exception:
+            pass
+    deadprocessingfilelist = [f for f in os.listdir(fileparampath) if os.path.isfile(os.path.join(fileparampath, f))]
+    for i in deadprocessingfilelist:
+        try:
+            os.remove(os.path.join(fileparampath, i))
+        except FileNotFoundError as exception:
+            pass
+    deadprocessingfilelist = [f for f in os.listdir(upload_directory) if os.path.isfile(os.path.join(upload_directory, f))]
+    for i in deadprocessingfilelist:
+        try:
+            os.remove(os.path.join(upload_directory, i))
+        except FileNotFoundError as exception:
+            pass
+    return
+
+deadfileprocesses = threading.Thread(target=RemoveDeadFileProcesses, daemon=True)
+deadfileprocesses.start()
 
 app = Flask(__name__, template_folder=templatepath)
 app.config['MAX_CONTENT_LENGTH'] = (32 * 1000 * 1000 * 1000) # Uploads limited to 16 mb
@@ -75,46 +83,6 @@ def GetFlaskVersion() -> str:
 
 # THE CODE FOR SPACE IS %20
 # THE CODE FOR COMMA IS %2C
-
-class TagType(): # Expand as necessary
-    def __init__(self, tag: str):
-        self.Tag = tag.lower()
-        self.SpecialTagTerm = None 
-        self.TagType = "Tag"
-        if tag.find(':') != -1:
-            if tag.lower().find('artist') != -1:
-                self.TagType = "Artist"
-                try:
-                    self.SpecialTagTerm = tag.lower().split(':')[1]
-                except IndexError as exception:
-                    self.SpecialTagTerm = None
-            elif tag.lower().find('rating') != -1:
-                self.TagType = "Rating"
-                try:
-                    self.SpecialTagTerm = tag.lower().split(':')[1]
-                except IndexError as exception:
-                    self.SpecialTagTerm = None
-            elif tag.lower().find('internal_id') != -1 or tag.lower().find('internalid') != -1:
-                self.TagType = "Internal_ID"
-                try:
-                    self.SpecialTagTerm = tag.lower().split(':')[1]
-                except IndexError as exception:
-                    self.SpecialTagTerm = None
-            elif tag.lower().find('file_ext') != -1 or tag.lower().find('fileext') != -1 or tag.lower().find('filext') != -1:
-                self.TagType = "File_EXT"
-                try:
-                    self.SpecialTagTerm = tag.lower().split(':')[1]
-                except IndexError as Exception:
-                    self.SpecialTagTerm = None
-            elif tag.lower().find('display_name') != -1 or tag.lower().find('displayname') != -1:
-                self.TagType = "Display_Name"
-                try:
-                    self.SpecialTagTerm = tag.lower().split(':')[1]
-                except IndexError as exception:
-                    self.SpecialTagTerm = None
-        return
-
-
 
 def GenerateBrowseThumbnail(filename: str, browsepage: int, maxfiles: int) -> str: #TODO: UPDATE TO SUPPORT 64px and 256px thumbnails!
     file = (os.path.splitext(filename))
@@ -161,7 +129,7 @@ def ParseTags(inStr: str) -> list:
         # if re.search(r"kiryu cha+n", re.escape(i)) != None: # Umbreone exclusive feature... Shush.
         #     i = "jess"
         if i != "":
-            tagls.append(TagType(i))
+            tagls.append(booruobj.TagType(i))
     return tagls
 
 @app.route('/agecheck', methods=['GET'])
@@ -295,7 +263,8 @@ def browse(page):
         return redirect(f"{site_url_name}/browse/1?maxfiles={str(maxfiles)}&tags={tagsstr}", code=302)
 
     endoffiles = False
-    browselisttpl = loonboorumysql.GetFileList(maxfiles, int(page), tags)
+
+    browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), tags)
     browselist = browselisttpl[0]
     nextpgexists = browselisttpl[1]
     startbreak = 0
@@ -466,7 +435,7 @@ def viewpage(page):
         uniprnt += "</p>"
     loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=browse&page={page}&maxfiles={maxfiles}&tags={tags}\">Log in.</a></p>"
     if AuthenticateUserAuth(session) == True:
-        username = loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"])
+        username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
         loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=view&page={page}&maxfiles={maxfiles}&tags={tags}\">Log Out.</a></p>"
     return render_template("view.html", SITE_NAME=site_name, DESCRIPTION=file.Description, DISPLAY_NAME=file.DisplayName, FILE_PATH=f"{cdn_url}/full/{file.FileID}.{file.FileEXT}", ARTIST_NAME=artistprnt, FILE_RATING=file.FileRating, UPLOAD_DATE=file.UploadDatetime, TAG_LIST=tagprint, CHAR_LIST=charprnt, SPEC_LIST=specprnt, CAMPAIGN_LIST=campprnt, UNIVERSE_LIST=uniprnt, LOGIN_INFO=loginstr, BACK_BTN_LINK=backbtnlink)
 
@@ -505,10 +474,113 @@ def searchpage():
         return redirect(f"{site_url_name}/agecheck?dest=search&maxfiles={str(maxfiles)}&page={page}")
     loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=browse&page={page}&maxfiles={maxfiles}&tags={tags}\">Log in.</a></p>"
     if AuthenticateUserAuth(session) == True:
-        username = loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"])
+        username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
         loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=search&page={page}&maxfiles={maxfiles}&tags={tags}\">Log Out.</a></p>"
     return render_template("search.html", SITE_NAME=site_name, LOGIN_INFO=loginstr)
-    
+
+@app.route("/character/<character_id>") # TODO: Continue with these for each category type
+def charactersearch(character_id):
+    arg = request.args.to_dict()
+    maxfiles="25"
+    if "maxfiles" in arg:
+        try:
+            maxfiles = int(arg["maxfiles"])
+        except ValueError as exception:
+            maxfiles = 25
+        if maxfiles == 0:
+            maxfiles = 1
+        elif maxfiles < 0:
+            maxfiles = maxfiles / -1
+        elif maxfiles > 100:
+            maxfiles = 100
+    maxfiles=int(maxfiles)
+    page="1"
+    if "page" in arg:
+        page = arg["page"]
+    page=int(page)
+    if page < 1:
+        page = 1
+
+    if character_id == None:
+        abort(400)
+    if ValidateAge(session) == False:
+        return redirect(f"{site_url_name}/agecheck?dest=character&page={character_id}&maxfiles={str(maxfiles)}")
+    character = loonboorumysql.GetCharacter(character_id)
+    if character == None:
+        abort(404)
+    characterfile = loonboorumysql.FetchAnyFileWithCharacter(character_id)
+    fileid = "nofilefound"
+    fileext = "png"
+    if characterfile != None:
+        fileid = characterfile.FileID
+        fileext = characterfile.FileEXT
+    characterspecstr = ""
+    for i in character.CharacterSpecies:
+        characterspecstr += i.SpeciesNameProper + ", "
+    if characterspecstr == "":
+        characterspecstr = "None"
+    else:
+        characterspecstr = characterspecstr[:-2]
+    characterownrstr = ""
+    for i in character.CharacterOwner:
+        characterownrstr += i.UsernameProper + ", "
+    if characterownrstr == "":
+        characterownrstr = "None"
+    else:
+        characterownrstr = characterownrstr[:-2]
+    characterspecstr = html.escape(f"Character Species: {characterspecstr}")
+    characterownrleadin = "Character Owner:"
+    if len(character.CharacterOwner) > 1:
+        characterownrleadin = "Character Owners:"
+    characterownrstr = html.escape(f"{characterownrleadin} {characterownrstr}")
+
+    endoffiles = False
+    browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), [f"characterid:{str(character_id)}"])
+    browselist = browselisttpl[0]
+    print(type(browselist))
+    nextpgexists = browselisttpl[1]
+    startbreak = 0
+    linebreak = 5
+    imginsert = ""
+    print(browselist)
+    for i in browselist:
+        try:
+            filepath = filestorepathfull + "/" + str(i.FileID) + "." + i.FileEXT
+            with Image.open(filepath) as f:
+                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles)
+        except FileNotFoundError as exception:
+            endoffiles = True
+            break
+        startbreak += 1
+        if startbreak == linebreak:
+            imginsert += "<br>"
+            linebreak += 5
+    print(imginsert)
+    if len(browselist) == 0:
+        imginsert = "<p class=\"noimgtxt\">Sorry, seems there's nothing here!</p>"
+    navinsert = "<hr style=\"border: solid 1px #c7ae40;\"><div style=\"text-align:center\">"
+    nobtn = True
+    if len(browselist) < maxfiles:
+        endoffiles = True
+    if nextpgexists == False:
+        endoffiles = True
+    if page != 1:
+        nobtn = False
+        prevpg = (int(page)) - 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/character/{character_id}?maxfiles={str(maxfiles)}&page={str(prevpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">←</p></div>"
+    if endoffiles == False:
+        nobtn = False
+        nextpg = (int(page)) + 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/character/{character_id}?maxfiles={str(maxfiles)}?maxfiles={str(maxfiles)}&page={str(nextpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">→</p></div>"
+    navinsert += "</div>"
+    if nobtn:
+        navinsert = ""
+    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=character&page={page}&maxfiles={maxfiles}\">Log in.</a></p>"
+    if AuthenticateUserAuth(session) == True:
+        username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
+        loginstr = f"<p class=\"headertxt\">Logged in as {username}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=character&page={character_id}&maxfiles={maxfiles}\">Log Out.</a></p>"
+    return render_template("character.html", SITE_NAME=site_name, CHARACTER_NAME=character.CharacterNameProper, FILE_PATH=f"{cdn_url}/full/{fileid}.{fileext}", CHARACTER_SPECIES=characterspecstr, CHARACTER_OWNER=characterownrstr, LOGIN_INFO=loginstr, IMAGEPAGEINSERT=imginsert, NAVBUTTONINSERT=navinsert) # TODO: Finish and test this
+
 def hash_string(inStr): # Creates a string hash for use
     hash_obj = hashlib.sha256(inStr.encode('utf-8'))
     hex_dig = hash_obj.hexdigest()
@@ -986,33 +1058,33 @@ def login():
         log_out_response = session["log_out_response"]
         session.pop("log_out_response")
     dest = "browse"
-    if "dest" in request.form:
-        dest = request.form["dest"]
+    if "dest" in arg:
+        dest = arg["dest"]
     page = "1"
-    if "page" in request.form:
-        page = request.form["page"]
+    if "page" in arg:
+        page = arg["page"]
     maxfiles = "25"
-    if "maxfiles" in request.form:
-        maxfiles = request.form["maxfiles"]
+    if "maxfiles" in arg:
+        maxfiles = arg["maxfiles"]
     tags = ""
-    if "tags" in request.form:
-        tags = request.form["tags"]
+    if "tags" in arg:
+        tags = arg["tags"]
     browsetype = "browse"
-    if browsetype in request.form:
-        browsetype = request.form["browsetype"]
+    if browsetype in arg:
+        browsetype = arg["browsetype"]
     browsepage = "1"
-    if browsepage in request.form:
+    if browsepage in arg:
         browsepage = arg["browsepage"]
     alreadyloggedin = False
     loginmsg = ""
     if 'auth_token' in session:
         authchk = loonboorumysql.ValidateAuthToken(session['auth_token'])
         if authchk[0] == True:
-            username = loonboorumysql.FetchUsernameFromAuthToken(session['auth_token'])
+            username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session['auth_token']))
             alreadyloggedin = True
             loginmsg = f"You are already logged in as {username}. Would you like to <a href=\"{site_url_name}/logout\">log out</a>?"
     if alreadyloggedin:
-        return render_template("login.html", SITE_NAME=site_name, LOGIN_MESSAGE=loginmsg, LOGIN_ERROR="")
+        return render_template("login.html", SITE_NAME=site_name, LOGIN_MESSAGE=loginmsg, LOGIN_ERROR="", SITE_URL=site_url_name, DESTINATION=dest, PAGE=page, MAXFILES=maxfiles, SEARCHTAGS=tags)
     else:
         login_message = ""
         if log_out_response != None:
@@ -1032,7 +1104,7 @@ def login():
                 login_error = "No username supplied. You must supply a username."
             elif login_fail_reason == 3:
                 login_error = "No password supplied. You must supply a password."
-        return render_template("login.html", SITE_NAME=site_name, LOGIN_MESSAGE=login_message, LOGIN_ERROR=login_error)
+        return render_template("login.html", SITE_NAME=site_name, LOGIN_MESSAGE=login_message, LOGIN_ERROR=login_error, SITE_URL=site_url_name, DESTINATION=dest, PAGE=page, MAXFILES=maxfiles, SEARCHTAGS=tags)
 
 @app.route("/logout", methods=['GET', 'POST'])
 def logout_user():
@@ -1069,7 +1141,7 @@ def logout_user():
 
 @app.route("/authenticate", methods=['POST'])
 def authenticate_user():
-    arg = request.args.to_dict()
+    arg = request.form.to_dict()
     dest = "browse"
     if "dest" in request.form:
         dest = request.form["dest"]

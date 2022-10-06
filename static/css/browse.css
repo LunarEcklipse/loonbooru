@@ -123,3 +123,49 @@ vertical-align:middle;
 {
     border: 1px solid #c7ae40;
 }
+
+.charactertop
+{
+    display:flex;
+    width:100%;
+    margin:auto;
+    vertical-align:top;
+    justify-content: center;
+}
+
+.characterheadimgdiv
+{
+    display:inline-flex;
+    width:40%;
+    height:100%;
+    text-align:center;
+    justify-content:center;
+}
+
+.characterheadimg
+{
+    width:100%;
+}
+
+.characterinfodiv
+{
+    display:inline-block;
+    width:50%;
+    height:100%;
+    margin:auto;
+    margin-top:0px;
+    text-align:center;
+    justify-content: center;
+    align-items: center;
+}
+
+.characterheadertxt
+{
+    font-family:Arial, Helvetica, sans-serif;
+    color:#c7ae40;
+}
+
+.characterinfoinnerdiv
+{
+    width:100%;
+}
