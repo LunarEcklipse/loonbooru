@@ -270,8 +270,6 @@ def browse(page):
     browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), tags)
     browselist = browselisttpl[0]
     nextpgexists = browselisttpl[1]
-    startbreak = 0
-    linebreak = 5
     imginsert = ""
     for i in browselist:
         try:
@@ -281,10 +279,6 @@ def browse(page):
         except FileNotFoundError as exception:
             endoffiles = True
             break
-        startbreak += 1
-        if startbreak == linebreak:
-            imginsert += "<br>"
-            linebreak += 5
     if len(browselist) == 0:
         imginsert = "<p class=\"noimgtxt\">Sorry, seems there's nothing here!</p>"
     navinsert = "<hr style=\"border: solid 1px #c7ae40;\"><div style=\"text-align:center\">"
@@ -348,7 +342,8 @@ def viewpage(page):
     if file.Tags != None:
         file.Tags.sort(key=lambda lm: lm.TagName)
         for i in file.Tags:
-            tagprint += html.escape(i.TagName) + ", "
+            tagname = html.escape(i.TagName)
+            tagprint += f"<a class=\"headertxt\" href=\"{site_url_name}/tag/{i.TagID}?maxfiles={str(maxfiles)}&page=1\">{tagname}</a>, "
     if tagprint == "":
         tagprint = "No tags found."
     else:
@@ -359,7 +354,7 @@ def viewpage(page):
         artistprnt = ""
         for i in file.Artists:
             artistname = html.escape(i.ArtistNameProper)
-            artistprnt += f"{artistname}, "
+            artistprnt += f"<a class=\"headertxt\" href=\"{site_url_name}/artist/{i.ArtistID}?maxfiles={str(maxfiles)}&page=1\">{artistname}</a>, "
         artistprnt = artistprnt[:-2]
         print(artistprnt)
     charprnt = ""
@@ -421,7 +416,7 @@ def viewpage(page):
         file.Campaigns.sort(key=lambda lm: lm.CampaignName)
         for i in file.Campaigns:
             campnameinsert = html.escape(i.CampaignNameProper)
-            campprnt += campnameinsert
+            campprnt += f"<a class=\"headertxt\" href=\"{site_url_name}/campaign/{i.CampaignID}?maxfiles={str(maxfiles)}&page=1\">{campnameinsert}</a>"
             if i.CampaignOwner != None and len(i.CampaignOwner) != 0:
                 campprnt += " ("
                 for j in i.CampaignOwner:
@@ -736,7 +731,6 @@ def universesearch(universe_id):
     endoffiles = False
     browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), [f"universeid:{str(universe_id)}"])
     browselist = browselisttpl[0]
-    print(type(browselist))
     nextpgexists = browselisttpl[1]
     startbreak = 0
     linebreak = 5
@@ -829,7 +823,6 @@ def speciessearch(species_id):
     endoffiles = False
     browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), [f"speciesid:{str(species_id)}"])
     browselist = browselisttpl[0]
-    print(type(browselist))
     nextpgexists = browselisttpl[1]
     startbreak = 0
     linebreak = 5
@@ -922,7 +915,6 @@ def campaignsearch(campaign_id):
     endoffiles = False
     browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), [f"campaignid:{str(campaign_id)}"])
     browselist = browselisttpl[0]
-    print(type(browselist))
     nextpgexists = browselisttpl[1]
     startbreak = 0
     linebreak = 5
@@ -958,11 +950,171 @@ def campaignsearch(campaign_id):
     navinsert += "</div>"
     if nobtn:
         navinsert = ""
-    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=character&page={page}&maxfiles={maxfiles}\">Log in.</a></p>"
+    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=campaign&page={page}&maxfiles={maxfiles}\">Log in.</a></p>"
     if AuthenticateUserAuth(session) == True:
         username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
         loginstr = f"<p class=\"headertxt\">Logged in as {html.escape(username)}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=campaign&page={campaign_id}&maxfiles={maxfiles}\">Log Out.</a></p>"
     return render_template("campaign.html", SITE_NAME=site_name, CAMPAIGN_NAME=campaign.CampaignNameProper, FILE_PATH=f"{cdn_url}/full/{fileid}.{fileext}", LOGIN_INFO=loginstr, CAMPAIGN_OWNERS=campaignownerstr, IMAGEPAGEINSERT=imginsert, NAVBUTTONINSERT=navinsert) # TODO: Finish and test this
+
+@app.route("/tag/<tag_id>")
+def tagsearch(tag_id):
+    arg = request.args.to_dict()
+    maxfiles="25"
+    if "maxfiles" in arg:
+        try:
+            maxfiles = int(arg["maxfiles"])
+        except ValueError as exception:
+            maxfiles = 25
+        if maxfiles == 0:
+            maxfiles = 1
+        elif maxfiles < 0:
+            maxfiles = maxfiles / -1
+        elif maxfiles > 100:
+            maxfiles = 100
+    maxfiles=int(maxfiles)
+    page="1"
+    if "page" in arg:
+        page = arg["page"]
+    page=int(page)
+    if page < 1:
+        page = 1
+
+    if tag_id == None:
+        abort(400)
+    if ValidateAge(session) == False:
+        return redirect(f"{site_url_name}/agecheck?dest=tag&page={tag_id}&maxfiles={str(maxfiles)}")
+    tag = loonboorumysql.GetTag(tag_id)
+    if tag == None:
+        abort(404)
+    tagfile = loonboorumysql.FetchAnyFileWithTag(tag_id)
+    fileid = "nofilefound"
+    fileext = "png"
+    if tagfile != None:
+        fileid = tagfile.FileID
+        fileext = tagfile.FileEXT
+    endoffiles = False
+    browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), [f"tagid:{str(tag_id)}"])
+    browselist = browselisttpl[0]
+    nextpgexists = browselisttpl[1]
+    startbreak = 0
+    linebreak = 5
+    imginsert = ""
+    for i in browselist:
+        try:
+            filepath = filestorepathfull + "/" + str(i.FileID) + "." + i.FileEXT
+            with Image.open(filepath) as f:
+                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles, "tag", tag_id)
+        except FileNotFoundError as exception:
+            endoffiles = True
+            break
+        startbreak += 1
+        if startbreak == linebreak:
+            imginsert += "<br>"
+            linebreak += 5
+    if len(browselist) == 0:
+        imginsert = "<p class=\"noimgtxt\">Sorry, seems there's nothing here!</p>"
+    navinsert = "<hr style=\"border: solid 1px #c7ae40;\"><div style=\"text-align:center\">"
+    nobtn = True
+    if len(browselist) < maxfiles:
+        endoffiles = True
+    if nextpgexists == False:
+        endoffiles = True
+    if page != 1:
+        nobtn = False
+        prevpg = (int(page)) - 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/tag/{tag_id}?maxfiles={str(maxfiles)}&page={str(prevpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">←</p></div>"
+    if endoffiles == False:
+        nobtn = False
+        nextpg = (int(page)) + 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/tag/{tag_id}?maxfiles={str(maxfiles)}?maxfiles={str(maxfiles)}&page={str(nextpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">→</p></div>"
+    navinsert += "</div>"
+    if nobtn:
+        navinsert = ""
+    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=tag&page={page}&maxfiles={maxfiles}\">Log in.</a></p>"
+    if AuthenticateUserAuth(session) == True:
+        username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
+        loginstr = f"<p class=\"headertxt\">Logged in as {html.escape(username)}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=tag&page={tag_id}&maxfiles={maxfiles}\">Log Out.</a></p>"
+    return render_template("tag.html", SITE_NAME=site_name, TAG_NAME=tag.TagNameProper, FILE_PATH=f"{cdn_url}/full/{fileid}.{fileext}", LOGIN_INFO=loginstr, IMAGEPAGEINSERT=imginsert, NAVBUTTONINSERT=navinsert) # TODO: Finish and test this
+
+@app.route("/artist/<artist_id>")
+def artistsearch(artist_id):
+    arg = request.args.to_dict()
+    maxfiles="25"
+    if "maxfiles" in arg:
+        try:
+            maxfiles = int(arg["maxfiles"])
+        except ValueError as exception:
+            maxfiles = 25
+        if maxfiles == 0:
+            maxfiles = 1
+        elif maxfiles < 0:
+            maxfiles = maxfiles / -1
+        elif maxfiles > 100:
+            maxfiles = 100
+    maxfiles=int(maxfiles)
+    page="1"
+    if "page" in arg:
+        page = arg["page"]
+    page=int(page)
+    if page < 1:
+        page = 1
+
+    if artist_id == None:
+        abort(400)
+    if ValidateAge(session) == False:
+        return redirect(f"{site_url_name}/agecheck?dest=artist&page={artist_id}&maxfiles={str(maxfiles)}")
+    artist = loonboorumysql.GetArtist(artist_id)
+    if artist == None:
+        abort(404)
+    artistfile = loonboorumysql.FetchAnyFileByArtist(artist_id)
+    fileid = "nofilefound"
+    fileext = "png"
+    if artistfile != None:
+        fileid = artistfile.FileID
+        fileext = artistfile.FileEXT
+    endoffiles = False
+    browselisttpl = loonboorumysql.GetFileList(int(maxfiles), int(page), [f"artistid:{str(artist_id)}"])
+    browselist = browselisttpl[0]
+    nextpgexists = browselisttpl[1]
+    startbreak = 0
+    linebreak = 5
+    imginsert = ""
+    for i in browselist:
+        try:
+            filepath = filestorepathfull + "/" + str(i.FileID) + "." + i.FileEXT
+            with Image.open(filepath) as f:
+                imginsert += GenerateBrowseThumbnail(i.Filename, page, maxfiles, "artist", artist_id)
+        except FileNotFoundError as exception:
+            endoffiles = True
+            break
+        startbreak += 1
+        if startbreak == linebreak:
+            imginsert += "<br>"
+            linebreak += 5
+    if len(browselist) == 0:
+        imginsert = "<p class=\"noimgtxt\">Sorry, seems there's nothing here!</p>"
+    navinsert = "<hr style=\"border: solid 1px #c7ae40;\"><div style=\"text-align:center\">"
+    nobtn = True
+    if len(browselist) < maxfiles:
+        endoffiles = True
+    if nextpgexists == False:
+        endoffiles = True
+    if page != 1:
+        nobtn = False
+        prevpg = (int(page)) - 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/artist/{artist_id}?maxfiles={str(maxfiles)}&page={str(prevpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">←</p></div>"
+    if endoffiles == False:
+        nobtn = False
+        nextpg = (int(page)) + 1
+        navinsert += f"<div onclick=\"location.href='{site_url_name}/artist/{artist_id}?maxfiles={str(maxfiles)}?maxfiles={str(maxfiles)}&page={str(nextpg)}'\" style=\"cursor:pointer; border: 2px solid #c7ae40; display:inline-block; background:#3A3B3C; border-radius: 3px;\"><p style=\"margin:auto; padding:5px; color: #c7ae40;\">→</p></div>"
+    navinsert += "</div>"
+    if nobtn:
+        navinsert = ""
+    loginstr = f"<p class=\"headertxt\">Not logged in. <a class=\"headertxt\" href=\"{site_url_name}/login?dest=artist&page={page}&maxfiles={maxfiles}\">Log in.</a></p>"
+    if AuthenticateUserAuth(session) == True:
+        username = html.escape(loonboorumysql.FetchUsernameFromAuthToken(session["auth_token"]))
+        loginstr = f"<p class=\"headertxt\">Logged in as {html.escape(username)}. <a class=\"headertxt\" href=\"{site_url_name}/logout?dest=artist&page={artist_id}&maxfiles={maxfiles}\">Log Out.</a></p>"
+    return render_template("artist.html", SITE_NAME=site_name, ARTIST_NAME=artist.ArtistNameProper, FILE_PATH=f"{cdn_url}/full/{fileid}.{fileext}", LOGIN_INFO=loginstr, IMAGEPAGEINSERT=imginsert, NAVBUTTONINSERT=navinsert) # TODO: Finish and test this
 
 def hash_string(inStr): # Creates a string hash for use
     hash_obj = hashlib.sha256(inStr.encode('utf-8'))

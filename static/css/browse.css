@@ -14,7 +14,6 @@
 {
     margin:auto;
     width:100%;
-    max-height:3000px;
     height:100%;
     text-align:center;
     display:block;
@@ -24,7 +23,7 @@
 {
     margin:auto;
     width:75%;
-    max-height:3000px;
+    max-width:755px;
     height:100%;
     text-align:center;
 }

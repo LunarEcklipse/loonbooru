@@ -4,7 +4,6 @@ from enum import Enum
 from datetime import datetime, timedelta
 from collections import Counter
 
-from numpy import str_
 import booruobj
 import hashlib
 import uuid
@@ -190,7 +189,7 @@ def FetchFileDetail(id_num: str) -> booruobj.FileDetail: # TODO: ADD TAGS TO ME!
     artistout = dbcs.fetchall()
     artistlist = []
     for i in artistout:
-        artistlist.append(booruobj.Artist(i[0], i[3], i[4], i[5]))
+        artistlist.append(booruobj.Artist(i[1], i[3], i[4], i[5]))
     del artistout
     dbcs.execute("SELECT * FROM `Files_Characters` INNER JOIN `Character_Base` ON Files_Characters.Character_ID = Character_Base.Character_ID INNER JOIN `Species_Base` ON Files_Characters.Species_ID = Species_Base.Species_ID WHERE Files_Characters.File_ID = %s;", (File_ID,))
     outchr = dbcs.fetchall()
@@ -1060,7 +1059,7 @@ def FetchAnyFileWithCharacter(character_id: str) -> booruobj.FileBasic: # TODO: 
         return None
     dbcs.close()
     dbase.close()
-    return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+    return booruobj.FileBasic(out[0], out[2], out[6], out[5], out[7], out[8])
 
 def FetchAnyFileWithUniverse(universe_id: str) -> booruobj.FileBasic: # TODO: This sucks, make it work better with parameters and shit (ideally try to show SFW and something with browse_view allowed.)
     dbase = ConnectToDB()
@@ -1098,7 +1097,7 @@ def FetchAnyFileWithCampaign(campaign_id: str) -> booruobj.FileBasic: # TODO: Th
         return None
     dbcs.close()
     dbase.close()
-    return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+    return booruobj.FileBasic(out[0], out[2], out[6], out[5], out[7], out[8])
 
 def FetchAnyFileWithSpecies(species_id: str) -> booruobj.FileBasic: # TODO: This sucks, make it work better with parameters and shit (ideally try to show SFW and something with browse_view allowed.)
     dbase = ConnectToDB()
@@ -1117,7 +1116,7 @@ def FetchAnyFileWithSpecies(species_id: str) -> booruobj.FileBasic: # TODO: This
         return None
     dbcs.close()
     dbase.close()
-    return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+    return booruobj.FileBasic(out[0], out[2], out[6], out[5], out[7], out[8])
 
 def FetchAnyFileByUser(user_id: str) -> booruobj.FileBasic:
     dbase = ConnectToDB()
@@ -1128,7 +1127,43 @@ def FetchAnyFileByUser(user_id: str) -> booruobj.FileBasic:
     dbase.close()
     if out == None: 
         return None
-    return booruobj.FileBasic(out[0], out[2], None, None, None, None)
+    return booruobj.FileBasic(out[0], out[2], out[6], out[5], out[7], out[8])
+
+def FetchAnyFileWithTag(tag_id: str) -> booruobj.FileBasic:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `File_ID` FROM `Files_Tags` WHERE `Tag_ID` = %s LIMIT 1;", (tag_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    fileid = out[0]
+    dbcs.execute("SELECT * FROM `Files_Base` WHERE `File_ID` = %s LIMIT 1;", (fileid,))
+    out = dbcs.fetchone()
+    dbcs.close()
+    dbase.close()
+    if out == None: # TODO: Make this better.
+        return None
+    return booruobj.FileBasic(fileid, out[2], out[6], out[5], out[7], out[8])
+
+def FetchAnyFileByArtist(artist_id: str) -> booruobj.FileBasic:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `File_ID` FROM `Files_Artist` WHERE `Artist_ID` = %s LIMIT 1;", (artist_id,))
+    out = dbcs.fetchone()
+    if out == None:
+        dbcs.close()
+        dbase.close()
+        return None
+    fileid = out[0]
+    dbcs.execute("SELECT * FROM `Files_Base` WHERE `File_ID` = %s LIMIT 1;", (fileid,))
+    out = dbcs.fetchone()
+    dbcs.close()
+    dbase.close()
+    if out == None: # TODO: Make this better.
+        return None
+    return booruobj.FileBasic(fileid, out[2], out[6], out[5], out[7], out[8])
 
 def FetchUserByUserID(user_id: str) -> booruobj.User:
     dbase = ConnectToDB()
@@ -1167,7 +1202,7 @@ def GetSpecies(species_id: str) -> booruobj.Species:
 
 def GetUniverse(universe_id: str) -> booruobj.Universe:
     dbase = ConnectToDB()
-    dbcs = dbase.cursor()
+    dbcs = dbase.cursor(prepared=True)
     dbcs.execute("SELECT `Universe_Name`, `Universe_Name_Proper` FROM `Universe_Base` WHERE `Universe_ID` = %s LIMIT 1;", (universe_id,))
     out = dbcs.fetchone()
     if out == None:
@@ -1189,7 +1224,7 @@ def GetUniverse(universe_id: str) -> booruobj.Universe:
 
 def GetCampaign(campaign_id: str) -> booruobj.Campaign:
     dbase = ConnectToDB()
-    dbcs = dbase.cursor()
+    dbcs = dbase.cursor(prepared=True)
     dbcs.execute("SELECT `Campaign_Name`, `Campaign_Name_Proper` FROM `Campaign_Base` WHERE `Campaign_ID` = %s LIMIT 1;", (campaign_id,))
     out = dbcs.fetchone()
     if out == None:
@@ -1208,3 +1243,25 @@ def GetCampaign(campaign_id: str) -> booruobj.Campaign:
     dbcs.close()
     dbase.close()
     return booruobj.Campaign(campaign_id, campaignname, campaignnameproper, ownerlist)
+
+def GetTag(tag_id: str) -> booruobj.TagBasic:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `Tag`, `Tag_Proper` FROM `Tag_Base` WHERE `Tag_ID` = %s LIMIT 1;", (tag_id,))
+    out = dbcs.fetchone()
+    dbcs.close()
+    dbase.close()
+    if out == None:
+        return None
+    return booruobj.TagBasic(tag_id, out[0], out[1])
+
+def GetArtist(artist_id: str) -> booruobj.Artist:
+    dbase = ConnectToDB()
+    dbcs = dbase.cursor(prepared=True)
+    dbcs.execute("SELECT `User_ID`, `Artist_Name`, `Artist_Name_Proper` FROM `Artist_Base` WHERE `Artist_ID` = %s LIMIT 1;", (artist_id,))
+    out = dbcs.fetchone()
+    dbcs.close()
+    dbase.close()
+    if out == None:
+        return None
+    return booruobj.Artist(artist_id, out[0], out[1], out[2])

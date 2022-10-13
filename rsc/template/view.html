@@ -34,10 +34,10 @@
         <hr class="lbreak">
         <p class="abouttxt"><i>{{DESCRIPTION}}</i></p>
         <br>
-        <p class="abouttxt">Artist: {{ARTIST_NAME}}</p>
+        <p class="abouttxt">Artist: {{ARTIST_NAME|safe}}</p>
         <p class="abouttxt">Rating: {{FILE_RATING}}</p>
         <p class="abouttxt">Uploaded: {{UPLOAD_DATE}}</p>
-        <p class="abouttxt">Tags: {{TAG_LIST}}</p>
+        <p class="abouttxt">Tags: {{TAG_LIST|safe}}</p>
         <br>
         {{CHAR_LIST|safe}}
         {{SPEC_LIST|safe}}

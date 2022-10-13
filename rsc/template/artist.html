@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/browse.css') }}">
-        <title>{{SITE_NAME}} | Tag | {{TAG_NAME}}</title>
+        <title>{{SITE_NAME}} | Artist | {{ARTIST_NAME}}</title>
     </head>
     <body class="background">
         <header>
@@ -12,7 +12,7 @@
             <hr class="headerborder">
         </header>
         <div class="userinfoheaderdiv">
-            <h1 class="characterheadertxt">{{TAG_NAME}}</h1>
+            <h1 class="characterheadertxt">{{ARTIST_NAME}}</h1>
             <hr class="headerborder">
             <img class="userheadimg" src={{FILE_PATH}}>
         </div>
